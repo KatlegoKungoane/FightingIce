@@ -31,7 +31,7 @@ def arg_parser():
     parser.add_argument("-e", "--engine_count", type=int, default=-1, help="Number of engines that will run at once")
     parser.add_argument("-g", "--no_games", type=int, default=-1, help="Number of games each engine will simulate")
     parser.add_argument("-d", "--game_duration", type=int, default=-1, help="Max drain of each match between agents")
-    parser.add_argument("-exp", "--experiment_name", type=str, default="adhoc", help="Name of the experiment")
+    parser.add_argument("-exp", "--game_name", type=str, default="adhoc", help="Name of the experiment")
 
     # Booleans (Flags)
     # action="store_true" means if the flag is present, it's True. If not, it's False.
@@ -44,9 +44,9 @@ def arg_parser():
     c.PLAYER_HP = c.PLAYER_HP if args.player_hit_points == -1 else args.player_hit_points
     c.POLL_INTERVAL_SEC = c.POLL_INTERVAL_SEC if args.poll_interval_sec == -1 else args.poll_interval_sec
     c.GAME_DURATION_SEC = c.GAME_DURATION_SEC if args.game_duration == -1 else args.game_duration
-    c.EXPERIMENT_NAME = c.EXPERIMENT_NAME if args.experiment_name == "adhoc" else args.experiment_name
+    c.EXPERIMENT_NAME = c.EXPERIMENT_NAME if args.game_name == "adhoc" else args.game_name
 
-# arg_parser()
+arg_parser()
 
 common_commands = [
     "java",

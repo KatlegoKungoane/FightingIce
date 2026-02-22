@@ -1,9 +1,9 @@
 # Custom
-# Logs
 log/
 custom_motions/
 .lwjgl/
-
+######
+ 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
