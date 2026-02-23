@@ -16,6 +16,7 @@ from pyftg.socket.aio.gateway import Gateway
 
 '''
     TODO: 
+        * Investigate why we are still using that hpmode stuff in other logs
         * Write all logs into respective experiment folder name
         * Get the overwriting thing working well.
         * Linter
@@ -66,10 +67,10 @@ common_commands = [
     "zen",
     "./custom_motions/zen.csv",
     # This is for the ai, so maybe turn on when you have those configured
-    # "--headless-mode",
+    "--headless-mode",
     "--input-sync",
     # Investigate this mode
-    # "--lightweight-mode",
+    "--lightweight-mode",
     "--pyftg-mode",
     "--non-delay",
     "2"
