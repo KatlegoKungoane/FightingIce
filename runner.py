@@ -99,7 +99,7 @@ available_gateways = create_gateways(8000, 9000, limit=c.NO_ENGINES)
 subprocesses = []
 os.makedirs(f"log/engines/{c.EXPERIMENT_NAME}", exist_ok=True)
 for index, port in enumerate(gateway.port for gateway in available_gateways):
-    log_f = open(f"log/engines/{c.EXPERIMENT_NAME}/instance-{port}-{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}.log", "w")
+    log_f = open(f"log/engines/{c.EXPERIMENT_NAME}/instance-{port}-{datetime.datetime.now().strftime('%Y.%m.%d_%H.%M.%S')}.log", "w")
     subprocesses.append(
         # This is where we are meant to add the different config paths
         subprocess.Popen(
