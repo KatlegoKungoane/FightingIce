@@ -154,28 +154,11 @@ available_gateways = create_gateways(8000, 9000, limit=c.NO_ENGINES)
 subprocesses = []
 log_files = []
 os.makedirs(f'log/engines/{c.EXPERIMENT_NAME}', exist_ok=True)
-for index, port in enumerate(gateway.port for gateway in available_gateways):
-	log_files.append(
-		open(
-			f'log/engines/{c.EXPERIMENT_NAME}/instance-{port}-{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}.log',
-			'w',
-		)
-	)
-	subprocesses.append(
-		# This is where we are meant to add the different config paths
-		subprocess.Popen(
-			[*common_commands, '--port', str(port)],
-			stdout=subprocess.PIPE,
-			stderr=subprocess.STDOUT,
-			text=True,
-			bufsize=1,
-		)
-	)
 
-	print(f'Engine started (PID: {subprocesses[index].pid}, PORT: {port}).')
 
 def kill_process(proc):
-	if proc.poll() is None:
+	# if proc.poll() is None:
+	if proc.returncode is None:
 		print(f'Forcefully killing process tree for PID {proc.pid}...')
 
 		# Windows
@@ -187,17 +170,58 @@ def kill_process(proc):
 		else:
 			proc.kill()
 
-		proc.wait()
+		# proc.wait()
+
 
 def kill_processes():
 	for proc in subprocesses:
 		kill_process(proc)
 
 
+async def log_monitor(subprocess, log_file, port):
+	while True:
+		line_bytes = await subprocess.stdout.readline()
+		if not line_bytes:
+			break
+
+		line = line_bytes.decode().strip()
+		log_file.write(line + '\n')
+		log_file.flush()
+
+		if any(err in line for err in ['Exception', 'Error', 'SEVERE']):
+			print(f'!!! CRITICAL ERROR ON PORT {port} !!!\n{line}')
+			kill_process(subprocess)
+			break
+
+
 matches = []
+monitor_logs = []
 
 
 async def start_matches():
+	for index, port in enumerate(gateway.port for gateway in available_gateways):
+		log_files.append(
+			open(
+				f'log/engines/{c.EXPERIMENT_NAME}/instance-{port}-{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}.log',
+				'w',
+			)
+		)
+		proc = await asyncio.create_subprocess_exec(
+			*common_commands,
+			'--port',
+			str(port),
+			stdout=asyncio.subprocess.PIPE,
+			stderr=asyncio.subprocess.STDOUT,
+		)
+		subprocesses.append(proc)
+
+		# Start a dedicated logger task for THIS specific engine immediately
+		monitor_logs.append(
+			asyncio.create_task(log_monitor(proc, log_files[index], port))
+		)
+
+		print(f'Engine started (PID: {subprocesses[index].pid}, PORT: {port}).')
+
 	await asyncio.sleep(3)
 	for index, gateway in enumerate(available_gateways):
 		agent1 = KickAI()
@@ -216,15 +240,19 @@ async def start_matches():
 		)
 		matches.append(task)
 
+	# monitor_logs.append(
+	# 	asyncio.create_task(log_monitor(subprocesses, log_files, available_gateways))
+	# )
+
 	async def monitor():
 		last_heartbeat = time.time() + c.POLL_INTERVAL_SEC
 		while True:
 			active_processes = np.full(
 				shape=(len(available_gateways)), fill_value=False, dtype=bool
 			)
-			for index, subprocess in enumerate(subprocesses):
+			for index, (subprocess, match) in enumerate(zip(subprocesses, matches)):
 				active_processes[index] = (
-					subprocess.poll() is None and not matches[index].done()
+					subprocess.returncode is None and not match.done()
 				)
 
 			# All are dead
@@ -241,19 +269,6 @@ async def start_matches():
 				for match in matches:
 					print(f'Match {"playing" if not match.done() else "finished"}')
 					print(match._state)
-
-				for index, process in enumerate(subprocesses):
-					for line in iter(process.stdout.readline, ''):
-						log_file = log_files[index]
-						log_file.write(line)
-						log_file.flush()
-
-						if 'Exception' in line or 'Error' in line or 'SEVERE' in line:
-							print(
-								f'!!! CRITICAL ERROR DETECTED ON PORT {available_gateways[index].port} !!!'
-							)
-							print(f'Reason: {line.strip()}')
-							kill_process(process)
 				# print(f"\033[{len(active_processes) + 2}F", end="", flush=True)
 				# print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "\n")
 				# line = ""
