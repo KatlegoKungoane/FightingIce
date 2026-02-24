@@ -65,7 +65,7 @@ prompt_toolkit
 protobuf
 psutil
 pure_eval
-pyftg
+pyftg==2.3.0
 pygame
 pyglet
 Pygments

@@ -115,10 +115,10 @@ common_commands = [
 	'1',
 	'-f',
 	str(c.GAME_DURATION_SEC * 60),
-	'--config-path',
-	'1',
-	'zen',
-	'./custom_motions/zen.csv',
+	# '--config-path',
+	# '1',
+	# 'zen',
+	# './custom_motions/zen.csv',
 	# This is for the ai, so maybe turn on when you have those configured
 	'--headless-mode',
 	'--input-sync',
@@ -152,17 +152,20 @@ def create_gateways(start_port, end_port, limit=100):
 available_gateways = create_gateways(8000, 9000, limit=c.NO_ENGINES)
 
 subprocesses = []
+log_files = []
 os.makedirs(f'log/engines/{c.EXPERIMENT_NAME}', exist_ok=True)
 for index, port in enumerate(gateway.port for gateway in available_gateways):
-	log_f = open(
-		f'log/engines/{c.EXPERIMENT_NAME}/instance-{port}-{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}.log',
-		'w',
+	log_files.append(
+		open(
+			f'log/engines/{c.EXPERIMENT_NAME}/instance-{port}-{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}.log',
+			'w',
+		)
 	)
 	subprocesses.append(
 		# This is where we are meant to add the different config paths
 		subprocess.Popen(
 			[*common_commands, '--port', str(port)],
-			stdout=log_f,
+			stdout=subprocess.PIPE,
 			stderr=subprocess.STDOUT,
 			text=True,
 			bufsize=1,
@@ -171,22 +174,24 @@ for index, port in enumerate(gateway.port for gateway in available_gateways):
 
 	print(f'Engine started (PID: {subprocesses[index].pid}, PORT: {port}).')
 
+def kill_process(proc):
+	if proc.poll() is None:
+		print(f'Forcefully killing process tree for PID {proc.pid}...')
+
+		# Windows
+		if os.name == 'nt':
+			subprocess.run(
+				['taskkill', '/F', '/T', '/PID', str(proc.pid)], capture_output=True
+			)
+		# Linux/Mac
+		else:
+			proc.kill()
+
+		proc.wait()
 
 def kill_processes():
 	for proc in subprocesses:
-		if proc.poll() is None:
-			print(f'Forcefully killing process tree for PID {proc.pid}...')
-
-			# Windows
-			if os.name == 'nt':
-				subprocess.run(
-					['taskkill', '/F', '/T', '/PID', str(proc.pid)], capture_output=True
-				)
-			# Linux/Mac
-			else:
-				proc.kill()
-
-			proc.wait()
+		kill_process(proc)
 
 
 matches = []
@@ -218,12 +223,6 @@ async def start_matches():
 				shape=(len(available_gateways)), fill_value=False, dtype=bool
 			)
 			for index, subprocess in enumerate(subprocesses):
-				# prev_state = active_processes[index]
-				# new_state = subprocess.poll() is None and not matches[index].done()
-
-				# if prev_state != new_state and not new_state:
-				# Not sure if I need to use asynchio for this as well
-				# await available_gateways[index].close()
 				active_processes[index] = (
 					subprocess.poll() is None and not matches[index].done()
 				)
@@ -242,6 +241,19 @@ async def start_matches():
 				for match in matches:
 					print(f'Match {"playing" if not match.done() else "finished"}')
 					print(match._state)
+
+				for index, process in enumerate(subprocesses):
+					for line in iter(process.stdout.readline, ''):
+						log_file = log_files[index]
+						log_file.write(line)
+						log_file.flush()
+
+						if 'Exception' in line or 'Error' in line or 'SEVERE' in line:
+							print(
+								f'!!! CRITICAL ERROR DETECTED ON PORT {available_gateways[index].port} !!!'
+							)
+							print(f'Reason: {line.strip()}')
+							kill_process(process)
 				# print(f"\033[{len(active_processes) + 2}F", end="", flush=True)
 				# print(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "\n")
 				# line = ""
