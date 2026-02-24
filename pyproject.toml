@@ -1,0 +1,23 @@
+[tool.ruff]
+extend-exclude = [
+    "venv",
+    ".venv",
+    "log",
+    "__pycache__",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+# E = Error, F = Pyflakes, I = Import sorting, UP = PyUpgrade
+select = ["E", "F", "I", "UP"]
+ignore = []
+fixable = ["ALL"]
+
+# 3. Custom Line Length
+# line-length = 100 
+
+[tool.ruff.format]
+# You can still have it look like Black, but with your tweaks
+quote-style = "single"
+indent-style = "tab"
