@@ -1,23 +1,30 @@
 [tool.ruff]
-extend-exclude = [
-    "venv",
-    ".venv",
-    "log",
-    "__pycache__",
-    "build",
-    "dist",
-]
+extend-exclude = ["venv", ".venv", "log", "__pycache__", "build", "dist"]
+line-length = 150
 
 [tool.ruff.lint]
 # E = Error, F = Pyflakes, I = Import sorting, UP = PyUpgrade
-select = ["E", "F", "I", "UP"]
-ignore = []
+select = [
+    "E",
+    "F",
+    "I",
+    "UP",
+    "PL",
+    "B",
+    "ANN", # Type annotations (forces you to define inputs/outputs)
+    "ARG", # Force me to not use global variables in function calls,
+    "FA", #Future Annotations
+    "PYI", #Typing stubs
+]
+ignore = ["PLR2044", "E501"]
 fixable = ["ALL"]
-
-# 3. Custom Line Length
-# line-length = 100 
 
 [tool.ruff.format]
 # You can still have it look like Black, but with your tweaks
 quote-style = "single"
 indent-style = "tab"
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = true
+ignore-fully-untyped = false
+# suppress-none-returning = true
