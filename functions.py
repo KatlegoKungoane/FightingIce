@@ -2,6 +2,9 @@ import argparse
 import asyncio
 import datetime
 import os
+import pathlib
+import re
+import shutil
 import socket
 import subprocess
 import time
@@ -11,8 +14,7 @@ import numpy as np
 from pyftg.socket.aio.gateway import Gateway
 
 import constants as c
-from agents.DisplayInfo import DisplayInfo
-from agents.KickAI import KickAI
+from agents.KatKickAi import KatKickAi
 
 
 def arg_parser() -> None:
@@ -60,6 +62,13 @@ def arg_parser() -> None:
 		default='adhoc',
 		help='Name of the experiment',
 	)
+	parser.add_argument(
+		'-zip',
+		'--zip_files',
+		type=str,
+		default='True',
+		help='Flag to ascertain if log files should be zipped or not',
+	)
 
 	# Booleans (Flags)
 	# action="store_true" means if the flag is present, it's True. If not, it's False.
@@ -97,6 +106,132 @@ def arg_parser() -> None:
 		if args.game_name == 'adhoc'
 		else args.game_name
 	)
+	c.ZIP_FILES = (
+		c.ZIP_FILES  #
+		if args.zip_files == 'True'
+		else False
+	)
+
+
+"""
+	We currently have so many logs in the root folders.
+	We need to consolidate everything into a single file, and maybe format it as well
+"""
+
+
+def get_number_from_file_name(file_name: str, string_to_find: str) -> int:
+	match = re.search(rf'{string_to_find}-(\d+)', file_name)
+
+	if match:
+		return int(match.group(1))
+	return -1
+
+
+def consolidate_data() -> None:
+	# We will first throw an error if you add a folder to the logs that we are not aware of
+	directory: pathlib.Path = pathlib.Path('log')
+	unknown_directories: list[str] = []
+
+	for folder in directory.iterdir():
+		if folder.is_dir() and folder.name not in c.KNOWN_LOGS:
+			unknown_directories.append(folder.name)
+
+	if len(unknown_directories) != 0:
+		raise FileNotFoundError(
+			'Known log directories are:',  #
+			','.join(c.KNOWN_LOGS),
+			'\nFound these unknown directories:',
+			','.join(unknown_directories),
+		)
+
+	for log_group_name in c.KNOWN_LOGS:
+		log_group: pathlib.Path = directory.joinpath(log_group_name)
+		# We will first check if it is already in a folder
+
+		time_stamps: set = set()
+		file_names: list[str] = []
+		for file in log_group.iterdir():
+			if file.is_file():
+				file_names.append(file.name)
+				time_stamps.add(file.name.split('-').pop().rsplit('.', 1)[0])
+
+		for time_stamp in time_stamps:
+			experiment_regex: re.Pattern = re.compile(rf'{re.escape(c.EXPERIMENT_NAME)}.*?{re.escape(time_stamp)}')
+
+			experiment_files: list[pathlib.Path] = []
+			for experiment in file_names:
+				if experiment_regex.match(experiment):
+					experiment_files.append(directory.joinpath(log_group_name, experiment))
+
+			file_extension = file_names[0].split('.')[-1]
+			consolidated_file_name: pathlib.Path = directory.joinpath(log_group_name, f'{c.EXPERIMENT_NAME}-{time_stamp}.{file_extension}')
+
+			if len(experiment_files) == 0:
+				continue
+
+			if log_group_name == 'replay':
+				experiment_folder_name: str = f'{c.EXPERIMENT_NAME}-{c.GAME_TIME}'
+				log_group_path: str = os.path.join('log', log_group_name)
+				experiment_folder_path: str = os.path.join(log_group_path, experiment_folder_name)
+				os.makedirs(experiment_folder_path, exist_ok=True)
+				for experiment_file in experiment_files:
+					experiment_file.rename(
+						os.path.join(
+							'log',
+							log_group_name,
+							experiment_folder_name,
+							experiment_file.name,
+						)
+					)
+
+				if c.ZIP_FILES:
+					experiment_folder = os.path.join(log_group_path, experiment_folder_name)
+					shutil.make_archive(
+						experiment_folder,
+						'zip',
+						experiment_folder_path,
+					)
+
+					purge_directory(experiment_folder, True)
+			else:
+				"""
+					we will handle the points and the frame data differently.
+				"""
+				with consolidated_file_name.open(mode='w') as consolidated_file:
+					if log_group_name == 'frameData':
+						consolidated_file.write('[')
+
+					for experiment_file in experiment_files:
+						if experiment_file.name == consolidated_file_name.name:
+							continue
+
+						if log_group_name == 'frameData':
+							consolidated_file.write(f'{{"{experiment_file.name}":')
+						elif log_group_name != 'point':
+							consolidated_file.write(f'{experiment_file}\n')
+
+						with experiment_file.open(mode='r') as src_file:
+							if log_group_name == 'point':
+								instance_number: int = get_number_from_file_name(experiment_file.name, 'instance')
+								round_number: int = get_number_from_file_name(experiment_file.name, 'round')
+								match_result: list[str] = src_file.readline().split(',')
+								# Remove the round count from the engine
+								match_result.pop(0)
+								match_result.pop()
+								winner: int = (match_result[0] > match_result[1]) - (match_result[1] > match_result[0])
+								consolidated_file.write(f'{instance_number},{round_number},{','.join(match_result)},{winner}')
+							else:
+								shutil.copyfileobj(src_file, consolidated_file)
+
+						if log_group_name == 'frameData':
+							consolidated_file.write('},\n')
+						else:
+							consolidated_file.write('\n')
+
+						experiment_file.unlink(missing_ok=True)
+
+					if log_group_name == 'frameData':
+						consolidated_file.write(']')
 
 
 def create_gateways(start_port: int, end_port: int, limit: int = 100) -> list[Gateway]:
@@ -132,9 +267,20 @@ def kill_process(process: asyncio.subprocess.Process) -> None:
 			process.kill()
 
 
-def kill_processes(simulators: list[asyncio.subprocess.Process]) -> None:
+async def close_files(log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper]) -> None:
+	for file in log_files:
+		await file.close()
+
+
+def kill_processes(
+	simulators: list[asyncio.subprocess.Process],  #
+	consolidate_input: bool = True,
+) -> None:
 	for simulator in simulators:
 		kill_process(simulator)
+
+	if consolidate_input:
+		consolidate_data()
 
 
 async def process_simulator_logs(
@@ -178,6 +324,7 @@ async def monitor_matches(
 			active_simulators[index] = simulator.returncode is None and not match.done()
 
 		if not np.any(active_simulators):
+			print('Simulation Completed Successfully (Maybe)')
 			break
 
 		if time.time() - last_heartbeat >= c.POLL_INTERVAL_SEC:
@@ -209,6 +356,7 @@ async def orchestrate_matches(
 	gateways: list[Gateway],  #
 	simulators: list[asyncio.subprocess.Process],
 	simulator_ready_events: list[asyncio.Event],
+	log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper],
 ) -> None:
 	matches: list[asyncio.Task] = []
 
@@ -221,11 +369,12 @@ async def orchestrate_matches(
 		print('All engines are ready')
 	except asyncio.TimeoutError:
 		print('One or more engines failed to start in time!')
+		await close_files(log_files)
 		kill_processes(simulators)
 
 	for index, gateway in enumerate(gateways):
-		agent1 = KickAI()
-		agent2 = DisplayInfo()
+		agent1 = KatKickAi(use_kick=True, interval=4)
+		agent2 = KatKickAi(use_kick=False, interval=1)
 		gateway.register_ai('KickAI', agent1)
 		gateway.register_ai('DisplayInfo', agent2)
 		game_name = f'{c.EXPERIMENT_NAME}-instance-{index}-{agent1.name()}-vs-{agent2.name()}'
@@ -249,9 +398,11 @@ async def orchestrate_matches(
 		)
 	except asyncio.TimeoutError:
 		print(f'[CRITICAL] Experiment exceeded time limit: {duration} sec. Shutting down.')
-		kill_processes(simulators)
+		await close_files(log_files)
+		kill_processes(simulators, log_files)
 
-	kill_processes(simulators)
+	await close_files(log_files)
+	kill_processes(simulators, log_files)
 
 
 async def start_simulators(
@@ -265,7 +416,7 @@ async def start_simulators(
 	for index, gateway in enumerate(gateways):
 		log_files.append(
 			await aiofiles.open(
-				f'log/engines/{c.EXPERIMENT_NAME}/instance-{gateway.port}-{datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")}.log',
+				f'log/engines/{c.EXPERIMENT_NAME}-instance-{gateway.port}-{c.GAME_TIME}.log',
 				'w',
 			)
 		)
@@ -290,4 +441,26 @@ async def start_simulators(
 
 		print(f'Engine started (PID: {simulators[index].pid}, PORT: {gateway.port}).')
 
-	await orchestrate_matches(gateways, simulators, simulator_ready_events)
+	await orchestrate_matches(gateways, simulators, simulator_ready_events, log_files)
+
+
+# GPT Function, not important to know how to delete files in folder
+def purge_directory(target_dir: str | pathlib.Path, remove_root: bool = False) -> None:
+	root = pathlib.Path(target_dir)
+
+	if not root.exists():
+		print(f'Path {root} does not exist.')
+		print(os.getcwd())
+		return
+
+	# rglob("*") finds everything recursively
+	# We sort them by length descending to ensure we process
+	# the deepest files/folders first (children before parents)
+	for path in sorted(root.rglob('*'), key=lambda p: len(p.parts), reverse=True):
+		if path.is_file() or path.is_symlink():
+			path.unlink()
+		elif path.is_dir():
+			path.rmdir()
+
+	if remove_root:
+		root.rmdir()

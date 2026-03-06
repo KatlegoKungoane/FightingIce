@@ -1,0 +1,126 @@
+import logging
+import time
+
+from pyftg.models.character_data import CharacterData
+
+from agents.Commands import Commands
+from pyftg import AIInterface, AudioData, CommandCenter, FrameData, GameData, Key, RoundResult, ScreenData
+
+logger = logging.getLogger(__name__)
+
+"""
+    * This is going to be an AI that uses Zen and will always kick.
+    * It will approach while it can then do a kick
+"""
+
+
+class KatKickAi(AIInterface):
+	def __init__(self, use_kick: bool = False, interval: float = 1) -> None:
+		super().__init__()
+		self.blind_flag: bool = False
+		self.use_kick: bool = use_kick
+		self.interval: float = interval
+		self.heartbeat = time.time()
+
+	def name(self) -> str:
+		return self.__class__.__name__ + (
+			'kicker'  #
+			if self.use_kick
+			else 'puncher'
+		)
+
+	def is_blind(self) -> bool:
+		return self.blind_flag
+
+	def initialize(self, _: GameData, player_number: int) -> None:
+		logger.info('initialize')
+		self.cc: CommandCenter = CommandCenter()
+		self.key: Key = Key()
+		self.player: int = player_number
+		self.opponent: int = (player_number + 1) % 2
+		self.is_control: bool = True
+
+	"""
+        * This is the "cheating" ai.
+        * This is to mimic human reaction time.
+        * Since we are simulating human players, should we keep this on?
+    """
+
+	# Comment to suppress error
+	def get_non_delay_frame_data(self, frame_data: FrameData) -> None:
+		pass
+
+	def input(self) -> Key:
+		return self.key
+
+	# Game will give you this each frame
+	def get_information(self, frame_data: FrameData, is_control: bool) -> None:
+		self.frame_data = frame_data
+		self.is_control = is_control
+		self.cc.set_frame_data(self.frame_data, self.player)
+
+	def get_screen_data(self, screen_data: ScreenData) -> None:
+		self.screen_data = screen_data
+
+	def get_audio_data(self, audio_data: AudioData) -> None:
+		self.audio_data = audio_data
+
+	def processing(self) -> None:
+		# Don't do anything during the menu / initialization
+		if self.frame_data.empty_flag or self.frame_data.current_frame_number <= 0:
+			return
+
+		allow_action_move: bool = abs(time.time() - self.heartbeat) > self.interval
+		self.heartbeat = (
+			time.time()  #
+			if allow_action_move
+			else self.heartbeat
+		)
+
+		# if not self.use_kick:
+		#     print(abs(time.time() - self.heartbeat), allow_action_move)
+
+		if self.cc.get_skill_flag():
+			self.key = self.cc.get_skill_key()
+		else:
+			self.key.empty()
+			self.cc.skill_cancel()
+
+			if self.is_control:
+				character: CharacterData = self.frame_data.get_character(self.player)
+				opponent: CharacterData = self.frame_data.get_character(self.opponent)
+
+				distance: float = (
+					opponent.left - character.right  #
+					if self.frame_data.is_front(self.player)
+					else character.left - opponent.right
+				)
+
+				# Can upgrade this to look at the distance in the meta data!!
+				true_left: float = character.x - character.graphic_size_x / 2
+				character_offset: float = abs(character.left - true_left)
+
+				attack_range: float = (
+					260 - character_offset  #
+					if self.use_kick
+					else 245 - character_offset
+				)
+
+				if distance >= attack_range:
+					self.cc.command_call(Commands.FORWARD_WALK)
+				elif allow_action_move:
+					self.cc.command_call(
+						Commands.STAND_B  #
+						if self.use_kick
+						else Commands.STAND_A
+					)
+
+	def round_end(self, round_result: RoundResult) -> None:
+		logger.info(f'round end: {round_result}')
+
+	def game_end(self) -> None:
+		logger.info('game end')
+
+	# Will add more stuff when it gets complicated
+	def close(self) -> None:
+		pass

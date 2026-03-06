@@ -6,9 +6,8 @@ import functions as f
 
 """
     TODO: 
-        * Investigate why we are still using that hpmode stuff in other logs
-        * Write all logs into respective experiment folder name
         * Get the overwriting thing working well.
+        * create script / python to kill all active instances?????/
         * Linter
 """
 
@@ -28,14 +27,16 @@ common_commands = [
 	'1',
 	'-f',
 	str(c.GAME_DURATION_SEC * 60),
+	'--time-stamp',
+	c.GAME_TIME,
 	# '--config-path',
 	# '1',
 	# 'zen',
 	# './custom_motions/zen.csv',
 	# This is for the ai, so maybe turn on when you have those configured
-	# '--headless-mode',
+	'--headless-mode',
 	'--input-sync',
-	# '--lightweight-mode',
+	'--lightweight-mode',
 	'--pyftg-mode',
 	'--non-delay',
 	'2',
@@ -43,7 +44,7 @@ common_commands = [
 
 print(f'Java jar command:{" ".join(common_commands)}')
 
-os.makedirs(os.path.join('log', 'engines', f'{c.EXPERIMENT_NAME}'), exist_ok=True)
+os.makedirs(os.path.join('log', 'engines'), exist_ok=True)
 
 gateways = f.create_gateways(8000, 9000, limit=c.NO_ENGINES)
 asyncio.run(f.start_simulators(gateways, common_commands))

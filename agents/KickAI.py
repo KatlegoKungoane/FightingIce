@@ -49,7 +49,7 @@ class KickAI(AIInterface):
             self.key.empty()
             self.cc.skill_cancel()
 
-            self.cc.command_call("B")
+            # self.cc.command_call("B")
     
     def round_end(self, round_result: RoundResult):
         logger.info(f"round end: {round_result}")
