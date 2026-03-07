@@ -1,10 +1,13 @@
 import logging
 import time
+import pandas
 
 from pyftg.models.character_data import CharacterData
 
-from agents.Commands import Commands
 from pyftg import AIInterface, AudioData, CommandCenter, FrameData, GameData, Key, RoundResult, ScreenData
+
+from MotionClasses.MotionNames import MotionNames as motion_names
+from MotionClasses.MotionHeaders import MotionHeaders as headers
 
 logger = logging.getLogger(__name__)
 
@@ -15,18 +18,34 @@ logger = logging.getLogger(__name__)
 
 
 class KatKickAi(AIInterface):
-	def __init__(self, use_kick: bool = False, interval: float = 1) -> None:
+	def __init__(
+		self,
+		motion: pandas.DataFrame,
+		use_kick: bool = False,
+		interval: float = 1,
+		character_name: str | None = None,
+	) -> None:
 		super().__init__()
 		self.blind_flag: bool = False
 		self.use_kick: bool = use_kick
 		self.interval: float = interval
 		self.heartbeat = time.time()
+		self.character_name = character_name
+		self.motion = motion
 
 	def name(self) -> str:
-		return self.__class__.__name__ + (
-			'kicker'  #
-			if self.use_kick
-			else 'puncher'
+		return (
+			self.__class__.__name__
+			+ (
+				'kicker'  #
+				if self.use_kick
+				else 'puncher'
+			)
+			+ (
+				self.character_name  #
+				if self.character_name is not None
+				else ''
+			)
 		)
 
 	def is_blind(self) -> bool:
@@ -96,24 +115,26 @@ class KatKickAi(AIInterface):
 					else character.left - opponent.right
 				)
 
-				# Can upgrade this to look at the distance in the meta data!!
 				true_left: float = character.x - character.graphic_size_x / 2
 				character_offset: float = abs(character.left - true_left)
 
-				attack_range: float = (
-					260 - character_offset  #
+				motion_name: str = (
+					motion_names.STAND_B #
 					if self.use_kick
-					else 245 - character_offset
+					else motion_names.STAND_A
 				)
 
-				if distance >= attack_range:
-					self.cc.command_call(Commands.FORWARD_WALK)
-				elif allow_action_move:
-					self.cc.command_call(
-						Commands.STAND_B  #
-						if self.use_kick
-						else Commands.STAND_A
-					)
+				attack_range: float = self.motion.at[motion_name, headers.ATTACK_HIT_AREA_RIGHT] - character_offset
+
+				if allow_action_move:
+					if distance >= attack_range:
+						self.cc.command_call(motion_names.FORWARD_WALK)
+					else:
+						self.cc.command_call(
+							motion_names.STAND_B  #
+							if self.use_kick
+							else motion_names.STAND_A
+						)
 
 	def round_end(self, round_result: RoundResult) -> None:
 		logger.info(f'round end: {round_result}')

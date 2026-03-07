@@ -15,9 +15,9 @@ from pyftg.socket.aio.gateway import Gateway
 
 import constants as c
 from agents.KatKickAi import KatKickAi
+from MotionClasses.MotionEditor import MotionEditor
 
-
-def arg_parser() -> None:
+def arg_parser() -> str:
 	parser: argparse.ArgumentParser = argparse.ArgumentParser(description='FightingICE Research Runner')
 
 	parser.add_argument(
@@ -112,6 +112,8 @@ def arg_parser() -> None:
 		else False
 	)
 
+	return args.game_name
+
 
 """
 	We currently have so many logs in the root folders.
@@ -127,7 +129,7 @@ def get_number_from_file_name(file_name: str, string_to_find: str) -> int:
 	return -1
 
 
-def consolidate_data() -> None:
+def consolidate_data(experiment_name: str) -> None:
 	# We will first throw an error if you add a folder to the logs that we are not aware of
 	directory: pathlib.Path = pathlib.Path('log')
 	unknown_directories: list[str] = []
@@ -156,7 +158,7 @@ def consolidate_data() -> None:
 				time_stamps.add(file.name.split('-').pop().rsplit('.', 1)[0])
 
 		for time_stamp in time_stamps:
-			experiment_regex: re.Pattern = re.compile(rf'{re.escape(c.EXPERIMENT_NAME)}.*?{re.escape(time_stamp)}')
+			experiment_regex: re.Pattern = re.compile(rf'{re.escape(experiment_name)}.*?{re.escape(time_stamp)}')
 
 			experiment_files: list[pathlib.Path] = []
 			for experiment in file_names:
@@ -164,13 +166,13 @@ def consolidate_data() -> None:
 					experiment_files.append(directory.joinpath(log_group_name, experiment))
 
 			file_extension = file_names[0].split('.')[-1]
-			consolidated_file_name: pathlib.Path = directory.joinpath(log_group_name, f'{c.EXPERIMENT_NAME}-{time_stamp}.{file_extension}')
+			consolidated_file_name: pathlib.Path = directory.joinpath(log_group_name, f'{experiment_name}-{time_stamp}.{file_extension}')
 
 			if len(experiment_files) == 0:
 				continue
 
 			if log_group_name == 'replay':
-				experiment_folder_name: str = f'{c.EXPERIMENT_NAME}-{c.GAME_TIME}'
+				experiment_folder_name: str = f'{experiment_name}-{c.GAME_TIME}'
 				log_group_path: str = os.path.join('log', log_group_name)
 				experiment_folder_path: str = os.path.join(log_group_path, experiment_folder_name)
 				os.makedirs(experiment_folder_path, exist_ok=True)
@@ -219,7 +221,7 @@ def consolidate_data() -> None:
 								match_result.pop(0)
 								match_result.pop()
 								winner: int = (match_result[0] > match_result[1]) - (match_result[1] > match_result[0])
-								consolidated_file.write(f'{instance_number},{round_number},{','.join(match_result)},{winner}')
+								consolidated_file.write(f'{instance_number},{round_number},{",".join(match_result)},{winner}')
 							else:
 								shutil.copyfileobj(src_file, consolidated_file)
 
@@ -274,13 +276,14 @@ async def close_files(log_files: list[aiofiles.threadpool.text.AsyncTextIOWrappe
 
 def kill_processes(
 	simulators: list[asyncio.subprocess.Process],  #
+	experiment_name: str,
 	consolidate_input: bool = True,
 ) -> None:
 	for simulator in simulators:
 		kill_process(simulator)
 
 	if consolidate_input:
-		consolidate_data()
+		consolidate_data(experiment_name)
 
 
 async def process_simulator_logs(
@@ -357,6 +360,9 @@ async def orchestrate_matches(
 	simulators: list[asyncio.subprocess.Process],
 	simulator_ready_events: list[asyncio.Event],
 	log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper],
+	characters: list[str],
+	motions: list[MotionEditor],
+	experiment_name: str,
 ) -> None:
 	matches: list[asyncio.Task] = []
 
@@ -370,27 +376,42 @@ async def orchestrate_matches(
 	except asyncio.TimeoutError:
 		print('One or more engines failed to start in time!')
 		await close_files(log_files)
-		kill_processes(simulators)
+		
+		kill_processes(
+			simulators,
+			experiment_name,
+		)
 
 	for index, gateway in enumerate(gateways):
-		agent1 = KatKickAi(use_kick=True, interval=4)
-		agent2 = KatKickAi(use_kick=False, interval=1)
-		gateway.register_ai('KickAI', agent1)
-		gateway.register_ai('DisplayInfo', agent2)
-		game_name = f'{c.EXPERIMENT_NAME}-instance-{index}-{agent1.name()}-vs-{agent2.name()}'
+		agent1 = KatKickAi(
+			use_kick=True,
+			interval=0.1,
+			character_name=characters[0],
+			motion=motions[0],
+		)
+		agent2 = KatKickAi(
+			use_kick=True,
+			interval=0.1,
+			character_name=characters[1],
+			motion=motions[0],
+		)
+
+		gateway.register_ai(agent1.name(), agent1)
+		gateway.register_ai(agent2.name(), agent2)
+		game_name = f'{experiment_name}-instance-{index}-{agent1.name()}-vs-{agent2.name()}'
 
 		matches.append(
 			asyncio.create_task(
 				gateway.run_game(
-					[f'{game_name}<name>ZEN', 'ZEN'],
-					['KickAI', 'DisplayInfo'],
+					[f'{game_name}<name>{characters[0]}', characters[1]],
+					[agent1.name(), agent2.name()],
 					c.NO_GAMES,
 				)
 			)
 		)
 
 	# Kill matches if games take too long to finish
-	duration: float = c.GAME_DURATION_SEC * c.NO_GAMES * 5
+	duration: float = c.GAME_DURATION_SEC * c.NO_GAMES * 1.5
 	try:
 		await asyncio.wait_for(
 			monitor_matches(gateways, simulators, matches),
@@ -399,24 +420,28 @@ async def orchestrate_matches(
 	except asyncio.TimeoutError:
 		print(f'[CRITICAL] Experiment exceeded time limit: {duration} sec. Shutting down.')
 		await close_files(log_files)
-		kill_processes(simulators, log_files)
+		kill_processes(simulators, experiment_name)
 
 	await close_files(log_files)
-	kill_processes(simulators, log_files)
+	kill_processes(simulators, experiment_name)
 
 
 async def start_simulators(
 	gateways: list[Gateway],
 	common_commands: list[str],
+	characters: list[str],
+	motions: list[MotionEditor],
+	experiment_name: str,
 ) -> None:
 	simulators: list[asyncio.subprocess.Process] = []
 	log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper] = []
 	simulator_ready_events: list[asyncio.Event] = [asyncio.Event() for _ in gateways]
 
+	task_containers: list[asyncio.Task] = []
 	for index, gateway in enumerate(gateways):
 		log_files.append(
 			await aiofiles.open(
-				f'log/engines/{c.EXPERIMENT_NAME}-instance-{gateway.port}-{c.GAME_TIME}.log',
+				f'log/engines/{experiment_name}-instance-{gateway.port}-{c.GAME_TIME}.log',
 				'w',
 			)
 		)
@@ -430,18 +455,28 @@ async def start_simulators(
 		)
 		simulators.append(proc)
 
-		asyncio.create_task(
-			process_simulator_logs(
-				proc,
-				log_files[index],
-				gateway.port,
-				simulator_ready_events[index],
+		task_containers.append(
+			asyncio.create_task(
+				process_simulator_logs(
+					proc,
+					log_files[index],
+					gateway.port,
+					simulator_ready_events[index],
+				)
 			)
 		)
 
 		print(f'Engine started (PID: {simulators[index].pid}, PORT: {gateway.port}).')
 
-	await orchestrate_matches(gateways, simulators, simulator_ready_events, log_files)
+	await orchestrate_matches(
+		gateways,
+		simulators,
+		simulator_ready_events,
+		log_files,
+		characters,
+		motions,
+		experiment_name,
+	)
 
 
 # GPT Function, not important to know how to delete files in folder

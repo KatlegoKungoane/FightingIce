@@ -5,10 +5,17 @@ import constants as c
 import functions as f
 
 """
+	Objective of this file
+		We are trying to simulate x games, ran over multiple simulators.
+		Maybe we can pass in who's playing who, and where the motions are.
+"""
+
+"""
     TODO: 
         * Get the overwriting thing working well.
-        * create script / python to kill all active instances?????/
         * Linter
+        * create script / python to kill all active instances?????
+			* Don't remember what this is
 """
 
 
@@ -34,9 +41,9 @@ common_commands = [
 	# 'zen',
 	# './custom_motions/zen.csv',
 	# This is for the ai, so maybe turn on when you have those configured
-	'--headless-mode',
+	# '--headless-mode',
 	'--input-sync',
-	'--lightweight-mode',
+	# '--lightweight-mode',
 	'--pyftg-mode',
 	'--non-delay',
 	'2',
@@ -47,4 +54,14 @@ print(f'Java jar command:{" ".join(common_commands)}')
 os.makedirs(os.path.join('log', 'engines'), exist_ok=True)
 
 gateways = f.create_gateways(8000, 9000, limit=c.NO_ENGINES)
-asyncio.run(f.start_simulators(gateways, common_commands))
+asyncio.run(
+	f.start_simulators(
+		gateways,
+		common_commands,
+		[
+			c.CHARACTERS.ZEN,
+			c.CHARACTERS.GARNET,
+		],
+		c.EXPERIMENT_NAME
+	)
+)

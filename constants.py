@@ -1,4 +1,5 @@
 import datetime
+import os
 
 NO_GAMES: int = 1
 NO_ENGINES: int = 1
@@ -17,4 +18,18 @@ KNOWN_LOGS: list[str] = [
 	'sound',  # We dont really use this though...
 ]
 
-GAME_TIME: str = datetime.datetime.now().strftime("%Y.%m.%d_%H.%M.%S")
+GAME_TIME: str = datetime.datetime.now().strftime('%Y.%m.%d_%H.%M.%S')
+
+
+class CHARACTERS:
+	ZEN = 'ZEN'
+	GARNET = 'GARNET'
+	LUD = 'LUD'
+ 
+
+CHARACTER_MOTION_PATHS: list[str | None] = [
+	None,
+	None,
+]
+
+DEFAULT_MOTIONS_PATH: str = os.path.join('data', 'characters')
