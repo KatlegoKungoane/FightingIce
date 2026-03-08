@@ -1,6 +1,7 @@
 # Custom
 log/
 .lwjgl/
+/custom_motions
 ######
  
 # Byte-compiled / optimized / DLL files
