@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import os
 
 import constants as c
@@ -9,10 +10,15 @@ from MotionClasses.MotionNames import MotionNames as motion_names
 
 """
     TODO: 
+		* Maybe look into consolidating when you are orchestrating many tournaments
+		* IMPORTANT IMPORTANT!!!! The replay is a key press replay, not a video... meaning you need to remember the motions
         * Get the overwriting thing working well.
         * Linter
         * create script / python to kill all active instances?????
 			* Don't remember what this is
+		* Investigate way to record multiple matches on multiple screens.
+		* I'm sure we can get the frames themselves then draw.
+		* Especially because the replay is just a recording of steps per frame, meaning that different meta states affect the efficacy.
 """
 
 """
@@ -25,7 +31,8 @@ from MotionClasses.MotionNames import MotionNames as motion_names
 
 async def start_orchestration() -> None:
 	for i in range(10):
-		base_experiment_name = 'orchestra'
+		c.GAME_TIME = datetime.datetime.now().strftime('%Y.%m.%d_%H.%M.%S')
+		base_experiment_name = 'orchestra_headless'
 		experiment_name = f'{base_experiment_name}_{i}'
 
 		custom_motion_file_name_zen = os.path.join(

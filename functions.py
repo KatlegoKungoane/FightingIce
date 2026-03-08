@@ -219,7 +219,7 @@ def consolidate_data(experiment_name: str) -> None:
 								match_result: list[str] = src_file.readline().split(',')
 								# Remove the round count from the engine
 								match_result.pop(0)
-								match_result.pop()
+								match_result[-1] = match_result[-1].replace('\n','')
 								winner: int = (match_result[0] > match_result[1]) - (match_result[1] > match_result[0])
 								consolidated_file.write(f'{instance_number},{round_number},{",".join(match_result)},{winner}')
 							else:
@@ -393,7 +393,7 @@ async def orchestrate_matches(
 			use_kick=True,
 			interval=0.1,
 			character_name=characters[1],
-			motion=motions[0],
+			motion=motions[1],
 		)
 
 		gateway.register_ai(agent1.name(), agent1)

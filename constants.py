@@ -33,3 +33,21 @@ CHARACTER_MOTION_PATHS: list[str | None] = [
 ]
 
 DEFAULT_MOTIONS_PATH: str = os.path.join('data', 'characters')
+
+class PointHeaderNames:
+	INSTANCE = 'instance'
+	ROUND = 'round' 
+	HP_ONE = 'hp_one' 
+	HP_TWO = 'hp_two' 
+	DRAIN = 'drain' 
+	WINNER = 'winner' 
+	SIMULATION_NUMBER = 'simulation_number'
+
+	D_TYPE = {
+		INSTANCE: 'int16',
+		ROUND: 'int16',
+		HP_ONE: 'int16',
+		HP_TWO: 'int16',
+		DRAIN: 'int16',
+		WINNER: 'int16',
+	}

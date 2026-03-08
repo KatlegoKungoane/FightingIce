@@ -1,13 +1,11 @@
 import logging
-import time
-import pandas
 
+import pandas
 from pyftg.models.character_data import CharacterData
 
-from pyftg import AIInterface, AudioData, CommandCenter, FrameData, GameData, Key, RoundResult, ScreenData
-
-from MotionClasses.MotionNames import MotionNames as motion_names
 from MotionClasses.MotionHeaders import MotionHeaders as headers
+from MotionClasses.MotionNames import MotionNames as motion_names
+from pyftg import AIInterface, AudioData, CommandCenter, FrameData, GameData, Key, RoundResult, ScreenData
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +26,8 @@ class KatKickAi(AIInterface):
 		super().__init__()
 		self.blind_flag: bool = False
 		self.use_kick: bool = use_kick
-		self.interval: float = interval
-		self.heartbeat = time.time()
+		self.interval_frames: float = interval * 60
+		self.heartbeat = -1
 		self.character_name = character_name
 		self.motion = motion
 
@@ -89,15 +87,12 @@ class KatKickAi(AIInterface):
 		if self.frame_data.empty_flag or self.frame_data.current_frame_number <= 0:
 			return
 
-		allow_action_move: bool = abs(time.time() - self.heartbeat) > self.interval
+		allow_action_move: bool = self.frame_data.current_frame_number - self.heartbeat >= self.interval_frames
 		self.heartbeat = (
-			time.time()  #
+			self.interval_frames - self.heartbeat
 			if allow_action_move
 			else self.heartbeat
 		)
-
-		# if not self.use_kick:
-		#     print(abs(time.time() - self.heartbeat), allow_action_move)
 
 		if self.cc.get_skill_flag():
 			self.key = self.cc.get_skill_key()

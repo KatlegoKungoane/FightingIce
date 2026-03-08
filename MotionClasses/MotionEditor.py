@@ -7,7 +7,6 @@ from MotionClasses.MotionHeaders import MotionHeaders as headers
 
 
 def read_motion_file(motion_path: str) -> pandas.DataFrame:
-	print(os.getcwd())
 	return pandas.read_csv(
 		filepath_or_buffer=motion_path,
 		index_col=headers.MOTION_NAME,
@@ -18,7 +17,11 @@ def read_motion_file(motion_path: str) -> pandas.DataFrame:
 
 
 def get_motion_difference(motion_original: pandas.DataFrame, motion_custom: pandas.DataFrame) -> pandas.DataFrame:
-	return motion_original.compare(motion_custom)
+	return motion_original.compare(
+		motion_custom,
+		keep_equal=True,
+		keep_shape=True,
+	)
 
 
 def get_motion_difference_path(motion_original_path: str, motion_custom_path: str) -> pandas.DataFrame:
@@ -26,6 +29,31 @@ def get_motion_difference_path(motion_original_path: str, motion_custom_path: st
 	motion_custom = read_motion_file(motion_custom_path)
 
 	return get_motion_difference(motion_original, motion_custom)
+
+
+def get_character_default_motion_path(character_name: str) -> str:
+	return os.path.join(
+		c.DEFAULT_MOTIONS_PATH,
+		character_name,
+		'Motion.csv',
+	)
+
+
+def get_motion_diffs(character_name: str, motions: list[pandas.DataFrame]) -> pandas.DataFrame:
+	default_motion = read_motion_file(get_character_default_motion_path(character_name))
+	return pandas.concat(
+		[get_motion_difference(default_motion, motion) for motion in motions],
+		keys=range(len(motions)),
+		names=[c.PointHeaderNames.SIMULATION_NUMBER, headers.MOTION_NAME],
+	)
+
+
+def get_motion_difference_for_motion(motion_diff: pandas.DataFrame, motion_name: str, header: str) -> pandas.DataFrame:
+	motion_rows = motion_diff.xs(motion_name, level=1)
+	diff_series = motion_rows[(header, 'other')] - motion_rows[(header, 'self')]
+	diff_df = diff_series.to_frame(name=header)
+
+	return diff_df
 
 
 class MotionEditor:
@@ -37,11 +65,7 @@ class MotionEditor:
 		self.character_name: str = character_name
 		self.custom_motion_path = custom_motion_path
 
-		default_motion_file_path: str = os.path.join(
-			c.DEFAULT_MOTIONS_PATH,
-			character_name,
-			'Motion.csv',
-		)
+		default_motion_file_path: str = get_character_default_motion_path(character_name)
 		self.motion_default: pandas.DataFrame = read_motion_file(default_motion_file_path)
 
 		self.motion_custom: pandas.DataFrame = (
