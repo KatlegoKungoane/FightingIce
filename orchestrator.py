@@ -32,7 +32,7 @@ from MotionClasses.MotionNames import MotionNames as motion_names
 async def start_orchestration(deterministic: bool = True) -> None:
 	for i in range(1):
 		c.GAME_TIME = datetime.datetime.now().strftime('%Y.%m.%d_%H.%M.%S')
-		base_experiment_name = 'non_deterministic_ai_1'
+		base_experiment_name = 'non_deterministic_ai_2'
 		experiment_name = f'{base_experiment_name}_{i}'
 
 		custom_motion_file_name_zen = os.path.join(
