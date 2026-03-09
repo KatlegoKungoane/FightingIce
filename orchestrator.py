@@ -113,4 +113,4 @@ if __name__ == '__main__':
 	# c.PLAYER_HP = c.PLAYER_HP
 	c.NO_ENGINE = 1
 	c.NO_GAMES = 1
-	asyncio.run(start_orchestration(deterministic=False))
+	asyncio.run(start_orchestration(deterministic=True))

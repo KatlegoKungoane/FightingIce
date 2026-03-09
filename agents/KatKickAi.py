@@ -104,7 +104,7 @@ class KatKickAi(AIInterface):
 
 		if allow_action_move:
 			self.heartbeat = (
-				self.interval_frames_current - self.heartbeat  #
+				self.heartbeat + self.interval_frames_current #
 				if self.deterministic
 				else self.frame_data.current_frame_number
 			)

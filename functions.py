@@ -386,14 +386,14 @@ async def orchestrate_matches(
 	for index, gateway in enumerate(gateways):
 		agent1 = KatKickAi(
 			use_kick=True,
-			interval=(0.1 if not deterministic else 0.5),
+			interval=(0.5 if not deterministic else 0.1),
 			character_name=characters[0],
 			motion=motions[0],
 			deterministic=deterministic,
 		)
 		agent2 = KatKickAi(
 			use_kick=True,
-			interval=(0.1 if not deterministic else 0.5),
+			interval=(0.5 if not deterministic else 0.1),
 			character_name=characters[1],
 			motion=motions[1],
 			deterministic=deterministic,
