@@ -363,6 +363,7 @@ async def orchestrate_matches(
 	characters: list[str],
 	motions: list[MotionEditor],
 	experiment_name: str,
+	deterministic: bool = False,
 ) -> None:
 	matches: list[asyncio.Task] = []
 
@@ -385,15 +386,17 @@ async def orchestrate_matches(
 	for index, gateway in enumerate(gateways):
 		agent1 = KatKickAi(
 			use_kick=True,
-			interval=0.1,
+			interval=(0.1 if not deterministic else 0.5),
 			character_name=characters[0],
 			motion=motions[0],
+			deterministic=deterministic,
 		)
 		agent2 = KatKickAi(
 			use_kick=True,
-			interval=0.1,
+			interval=(0.1 if not deterministic else 0.5),
 			character_name=characters[1],
 			motion=motions[1],
+			deterministic=deterministic,
 		)
 
 		gateway.register_ai(agent1.name(), agent1)
@@ -432,6 +435,7 @@ async def start_simulators(
 	characters: list[str],
 	motions: list[MotionEditor],
 	experiment_name: str,
+	deterministic: bool = True
 ) -> None:
 	simulators: list[asyncio.subprocess.Process] = []
 	log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper] = []
@@ -476,6 +480,7 @@ async def start_simulators(
 		characters,
 		motions,
 		experiment_name,
+		deterministic=deterministic
 	)
 
 

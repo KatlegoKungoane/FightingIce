@@ -29,10 +29,10 @@ from MotionClasses.MotionNames import MotionNames as motion_names
 """
 
 
-async def start_orchestration() -> None:
-	for i in range(10):
+async def start_orchestration(deterministic: bool = True) -> None:
+	for i in range(1):
 		c.GAME_TIME = datetime.datetime.now().strftime('%Y.%m.%d_%H.%M.%S')
-		base_experiment_name = 'orchestra_headless'
+		base_experiment_name = 'non_deterministic_ai_1'
 		experiment_name = f'{base_experiment_name}_{i}'
 
 		custom_motion_file_name_zen = os.path.join(
@@ -78,9 +78,9 @@ async def start_orchestration() -> None:
 			'zen',
 			zen_motion_editor.custom_motion_path,
 			# This is for the ai, so maybe turn on when you have those configured
-			'--headless-mode',
+			#'--headless-mode',
 			'--input-sync',
-			'--lightweight-mode',
+			#'--lightweight-mode',
 			'--pyftg-mode',
 			'--non-delay',
 			'2',
@@ -103,6 +103,7 @@ async def start_orchestration() -> None:
 				garnet_motion_editor.motion_default,
 			],
 			experiment_name,
+			deterministic=deterministic
 		)
 
 
@@ -112,4 +113,4 @@ if __name__ == '__main__':
 	# c.PLAYER_HP = c.PLAYER_HP
 	c.NO_ENGINE = 1
 	c.NO_GAMES = 1
-	asyncio.run(start_orchestration())
+	asyncio.run(start_orchestration(deterministic=False))

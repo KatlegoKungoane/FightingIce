@@ -1,4 +1,5 @@
 import logging
+import random
 
 import pandas
 from pyftg.models.character_data import CharacterData
@@ -22,14 +23,26 @@ class KatKickAi(AIInterface):
 		use_kick: bool = False,
 		interval: float = 1,
 		character_name: str | None = None,
+		deterministic: bool = True,
 	) -> None:
 		super().__init__()
 		self.blind_flag: bool = False
 		self.use_kick: bool = use_kick
-		self.interval_frames: float = interval * 60
-		self.heartbeat = -1
-		self.character_name = character_name
-		self.motion = motion
+		self.interval_frames: float = interval * 60 * 5
+		self.interval_frames_current: float
+		self.heartbeat: int = -1
+		self.character_name: str = character_name
+		self.motion: pandas.DataFrame = motion
+		self.deterministic: bool = deterministic
+
+		self.reset_interval()
+
+	def reset_interval(self) -> None:
+		self.interval_frames_current: float = (
+			self.interval_frames  #
+			if self.deterministic
+			else random.uniform(1, self.interval_frames)
+		)
 
 	def name(self) -> str:
 		return (
@@ -87,12 +100,15 @@ class KatKickAi(AIInterface):
 		if self.frame_data.empty_flag or self.frame_data.current_frame_number <= 0:
 			return
 
-		allow_action_move: bool = self.frame_data.current_frame_number - self.heartbeat >= self.interval_frames
-		self.heartbeat = (
-			self.interval_frames - self.heartbeat
-			if allow_action_move
-			else self.heartbeat
-		)
+		allow_action_move: bool = self.frame_data.current_frame_number - self.heartbeat >= self.interval_frames_current
+
+		if allow_action_move:
+			self.heartbeat = (
+				self.interval_frames_current - self.heartbeat  #
+				if self.deterministic
+				else self.frame_data.current_frame_number
+			)
+			self.reset_interval()
 
 		if self.cc.get_skill_flag():
 			self.key = self.cc.get_skill_key()
@@ -114,7 +130,7 @@ class KatKickAi(AIInterface):
 				character_offset: float = abs(character.left - true_left)
 
 				motion_name: str = (
-					motion_names.STAND_B #
+					motion_names.STAND_B  #
 					if self.use_kick
 					else motion_names.STAND_A
 				)
