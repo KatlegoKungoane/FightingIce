@@ -30,9 +30,9 @@ from MotionClasses.MotionNames import MotionNames as motion_names
 
 
 async def start_orchestration(deterministic: bool = True) -> None:
-	for i in range(1):
+	for i in range(10):
 		c.GAME_TIME = datetime.datetime.now().strftime('%Y.%m.%d_%H.%M.%S')
-		base_experiment_name = 'non_deterministic_ai_2'
+		base_experiment_name = 'non_deterministic_ai_11'
 		experiment_name = f'{base_experiment_name}_{i}'
 
 		custom_motion_file_name_zen = os.path.join(
@@ -78,9 +78,9 @@ async def start_orchestration(deterministic: bool = True) -> None:
 			'zen',
 			zen_motion_editor.custom_motion_path,
 			# This is for the ai, so maybe turn on when you have those configured
-			#'--headless-mode',
+			# '--headless-mode',
 			'--input-sync',
-			#'--lightweight-mode',
+			# '--lightweight-mode',
 			'--pyftg-mode',
 			'--non-delay',
 			'2',
@@ -113,4 +113,5 @@ if __name__ == '__main__':
 	# c.PLAYER_HP = c.PLAYER_HP
 	c.NO_ENGINE = 1
 	c.NO_GAMES = 1
+	c.ZIP_FILES = False
 	asyncio.run(start_orchestration(deterministic=True))
