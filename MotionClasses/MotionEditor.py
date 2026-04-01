@@ -1,6 +1,7 @@
 import os
 import pathlib
 import pandas
+import numpy as np
 
 import constants as c
 from MotionClasses.MotionHeaders import MotionHeaders as headers
@@ -100,7 +101,11 @@ def modify_motion(
         .astype('int16')
     )
 
-def save_custom_motion(motion: pandas.DataFrame, path: str,) -> None:
+
+def save_custom_motion(
+    motion: pandas.DataFrame,
+    path: str,
+) -> None:
     motion_custom_copy = motion.copy()
 
     motion_custom_copy[headers.ATTACK_DOWN_PROP] = motion_custom_copy[headers.ATTACK_DOWN_PROP].map({True: 'TRUE', False: 'FALSE'})
@@ -113,7 +118,7 @@ def save_custom_motion(motion: pandas.DataFrame, path: str,) -> None:
     )
 
     motion_custom_copy.to_csv(path)
-    
+
 
 DEFAULT_ZEN_MOTION: pandas.DataFrame = read_motion_file(
     os.path.join(
@@ -149,6 +154,27 @@ DEFAULT_MOTION_LIST = [
 NUMERICAL_SHAPE = DEFAULT_ZEN_MOTION.select_dtypes('number').shape
 
 
+class ConstraintInformation:
+    utilized_numerical_cols: list[int] = []
+
+    # We are going to select the cols that are in use (not NONE) and not the index col as well
+    theoretical_max_numerical_range: np.ndarray = np.zeros(shape=(c.MotionData.cols - list(headers.MOTION_LIMITS.values()).count(None) + 1))
+
+    counter: int = 0
+    for index, header_limits in enumerate(headers.MOTION_LIMITS.values()):
+        # We are basically ignoring the index col, motion name
+        if index == 0:
+            continue
+
+        if header_limits is not None:
+            # Minus 1 to take into account the header being an index
+            utilized_numerical_cols.append(headers.MAPPER[index] - 1)
+            theoretical_max_numerical_range[counter] = header_limits['max'] - header_limits['min']
+            counter += 1
+
+    THEORETICAL_MAX_NUMERICAL_UNIQUENESS_SINGLE_ROW: float = np.linalg.norm(theoretical_max_numerical_range)
+
+
 class MotionEditor:
     def __init__(
         self,
@@ -173,8 +199,5 @@ class MotionEditor:
             if path is not None
             else self.custom_motion_path
         )
-        
-        save_custom_motion(
-            motion=self.motion_custom,
-            path=determined_path    
-        )
+
+        save_custom_motion(motion=self.motion_custom, path=determined_path)

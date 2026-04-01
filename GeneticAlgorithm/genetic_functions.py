@@ -20,9 +20,9 @@ def constraint_novelty_search(
     string_motions: np.ndarray | None,
     boolean_motions: np.ndarray | None,
 ) -> float:
-    num_zen_garnet_distance = np.linalg.norm(numerical_motions[0] - numerical_motions[1])
-    num_zen_lud_distance = np.linalg.norm(numerical_motions[0] - numerical_motions[2])
-    num_garnet_lud_distance = np.linalg.norm(numerical_motions[1] - numerical_motions[2])
+    num_zen_garnet_distance = np.linalg.norm(numerical_motions[0, :, me.ConstraintInformation.utilized_numerical_cols] - numerical_motions[1, :, me.ConstraintInformation.utilized_numerical_cols])
+    num_zen_lud_distance = np.linalg.norm(numerical_motions[0, :, me.ConstraintInformation.utilized_numerical_cols] - numerical_motions[2, :, me.ConstraintInformation.utilized_numerical_cols])
+    num_garnet_lud_distance = np.linalg.norm(numerical_motions[1, :, me.ConstraintInformation.utilized_numerical_cols] - numerical_motions[2, :, me.ConstraintInformation.utilized_numerical_cols])
 
     if string_motions is None:
         str_zen_garnet_distance = 0
@@ -42,17 +42,29 @@ def constraint_novelty_search(
         bool_zen_lud_distance = np.linalg.norm((boolean_motions[0] != boolean_motions[2]).astype(int))
         bool_garnet_lud_distance = np.linalg.norm((boolean_motions[1] != boolean_motions[2]).astype(int))
 
-    return (
-        num_zen_garnet_distance
-        + num_zen_lud_distance
-        + num_garnet_lud_distance
-        + str_zen_garnet_distance
-        + str_zen_lud_distance
-        + str_garnet_lud_distance
-        + bool_zen_garnet_distance
-        + bool_zen_lud_distance
-        + bool_garnet_lud_distance
+    # Adding a normalization to the uniqueness constraint
+    numerical_normalization: float = me.ConstraintInformation.THEORETICAL_MAX_NUMERICAL_UNIQUENESS_SINGLE_ROW * numerical_motions.shape[1]
+    str_normalization: float = (
+        1  #
+        if string_motions is None
+        else string_motions[1] * string_motions[2]
     )
+    bool_normalization: float = (
+        1  #
+        if boolean_motions is None
+        else boolean_motions[1] * boolean_motions[2]
+    )
+    return (
+        num_zen_garnet_distance / numerical_normalization
+        + num_zen_lud_distance / numerical_normalization
+        + num_garnet_lud_distance / numerical_normalization
+        + str_zen_garnet_distance / str_normalization
+        + str_zen_lud_distance / str_normalization
+        + str_garnet_lud_distance / str_normalization
+        + bool_zen_garnet_distance / bool_normalization
+        + bool_zen_lud_distance / bool_normalization
+        + bool_garnet_lud_distance / bool_normalization
+    ) / 9
 
 
 """
@@ -72,7 +84,7 @@ async def orchestrate_matches(
     c.POLL_INTERVAL_SEC = 0
     c.GAME_DURATION_SEC = 20
 
-    experiment_name = f"{iteration_count}_{experiment_name}"
+    experiment_name = f'{iteration_count}_{experiment_name}'
 
     # TODO: Do something about this if it fails
     gateways = f.create_gateways(8500, 9000, limit=engine_count)
@@ -138,7 +150,7 @@ async def orchestrate_matches(
         characters = [
             *characters,
             *[
-                character_name #
+                character_name  #
                 for combination in character_order_combinations
                 for character_name in [c.CHARACTER_ORDER_REVERSE[combination[0]], c.CHARACTER_ORDER_REVERSE[combination[1]]]  #
             ],
@@ -165,9 +177,9 @@ async def orchestrate_matches(
     #   x % 3 == 0 -> zen vd lud
     #   x % 3 == 0 -> garnet vd lud
 
-    point_csv: pathlib.Path | None = next(pathlib.Path(os.path.join("log", "point")).glob(f"{experiment_name}*.csv"), None)
+    point_csv: pathlib.Path | None = next(pathlib.Path(os.path.join('log', 'point')).glob(f'{experiment_name}*.csv'), None)
     if point_csv is None:
-        raise FileExistsError(f"Glob failed to fined experiment | {point_csv} | in folder")
+        raise FileExistsError(f'Glob failed to fined experiment | {point_csv} | in folder')
     if not point_csv.exists():
         raise FileExistsError(f"Point file | {point_csv} | doesn't exist folder")
 
@@ -178,8 +190,14 @@ async def orchestrate_matches(
     hp_diff_garnet_lud = point_df.iloc[2::3][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
 
     # Think about this more, if we have z-g and z-l, do we need to add g-z again?
-    zen_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum()) / (no_matches * 2)
-    garnet_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (no_matches * 2)
-    lud_win_rate = ((hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (no_matches * 2)
+    zen_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum()) / (
+        no_matches * 2
+    )
+    garnet_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (
+        no_matches * 2
+    )
+    lud_win_rate = ((hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (
+        no_matches * 2
+    )
 
     return (zen_win_rate + garnet_win_rate + lud_win_rate) / 3

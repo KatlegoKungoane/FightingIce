@@ -194,12 +194,12 @@ class MotionHeaders:
         IMAGE: None,
     }
 
+   
     NUMERICAL_HEADERS: list[str] = []
     STRING_HEADERS: list[str] = []
     BOOLEAN_HEADERS: list[str] = []
 
     MAPPER: np.ndarray = np.zeros(shape=len(D_TYPE.keys()), dtype=np.int8)
-    INVERSE_MAPPER: np.ndarray = np.zeros(shape=len(D_TYPE.keys()), dtype=np.int8)
 
     for index, (header, data_type) in enumerate(D_TYPE.items()):
         match data_type:
