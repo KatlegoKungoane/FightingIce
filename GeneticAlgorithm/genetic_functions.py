@@ -1,0 +1,185 @@
+from typing import TypedDict
+import numpy as np
+import pandas
+import os
+from itertools import combinations
+import pathlib
+
+import constants as c
+import functions as f
+
+import MotionClasses.MotionEditor as me
+import MotionClasses.MotionHeaders as mh
+import MotionClasses.MotionNames as mn
+
+
+# According to research, its just euclid distance between objects
+# TODO parallelize
+def constraint_novelty_search(
+    numerical_motions: np.ndarray,
+    string_motions: np.ndarray | None,
+    boolean_motions: np.ndarray | None,
+) -> float:
+    num_zen_garnet_distance = np.linalg.norm(numerical_motions[0] - numerical_motions[1])
+    num_zen_lud_distance = np.linalg.norm(numerical_motions[0] - numerical_motions[2])
+    num_garnet_lud_distance = np.linalg.norm(numerical_motions[1] - numerical_motions[2])
+
+    if string_motions is None:
+        str_zen_garnet_distance = 0
+        str_zen_lud_distance = 0
+        str_garnet_lud_distance = 0
+    else:
+        str_zen_garnet_distance = np.linalg.norm((string_motions[0] != string_motions[1]).astype(int))
+        str_zen_lud_distance = np.linalg.norm((string_motions[0] != string_motions[2]).astype(int))
+        str_garnet_lud_distance = np.linalg.norm((string_motions[1] != string_motions[2]).astype(int))
+
+    if boolean_motions is None:
+        bool_zen_garnet_distance = 0
+        bool_zen_lud_distance = 0
+        bool_garnet_lud_distance = 0
+    else:
+        bool_zen_garnet_distance = np.linalg.norm((boolean_motions[0] != boolean_motions[1]).astype(int))
+        bool_zen_lud_distance = np.linalg.norm((boolean_motions[0] != boolean_motions[2]).astype(int))
+        bool_garnet_lud_distance = np.linalg.norm((boolean_motions[1] != boolean_motions[2]).astype(int))
+
+    return (
+        num_zen_garnet_distance
+        + num_zen_lud_distance
+        + num_garnet_lud_distance
+        + str_zen_garnet_distance
+        + str_zen_lud_distance
+        + str_garnet_lud_distance
+        + bool_zen_garnet_distance
+        + bool_zen_lud_distance
+        + bool_garnet_lud_distance
+    )
+
+
+"""
+* TODO: Think about scaling at a later stage
+* For now, we will have 3 engines to handle the different matches against the MCTS agents
+"""
+
+
+async def orchestrate_matches(
+    mutated_motions: list[pandas.DataFrame],
+    no_matches: int,
+    experiment_name: str,
+    iteration_count: int,
+    engine_count: int = 3,
+) -> float:
+    c.NO_GAMES = no_matches
+    c.POLL_INTERVAL_SEC = 0
+    c.GAME_DURATION_SEC = 20
+
+    experiment_name = f"{iteration_count}_{experiment_name}"
+
+    # TODO: Do something about this if it fails
+    gateways = f.create_gateways(8500, 9000, limit=engine_count)
+
+    custom_motion_paths: list[str] = [
+        os.path.join(
+            c.CUSTOM_MOTION_PATH,
+            experiment_name,
+            f'{character_name.lower()}.csv',
+        )  #
+        for character_name in c.CHARACTER_ORDER.keys()
+    ]
+
+    for path, mutated_motion in zip(custom_motion_paths, mutated_motions, strict=True):
+        me.save_custom_motion(
+            motion=mutated_motion,
+            path=path,
+        )
+
+    argument_for_custom_motions: list[str] = []
+    character_order_combinations: list[tuple[int, int]] = list(combinations([0, 1, 2], 2))
+    for combination in character_order_combinations:
+        argument_for_custom_motions = [
+            *argument_for_custom_motions,
+            '--config-path',
+            '2',
+            c.CHARACTER_ORDER_REVERSE[combination[0]],
+            custom_motion_paths[combination[0]],
+            c.CHARACTER_ORDER_REVERSE[combination[1]],
+            custom_motion_paths[combination[1]],
+        ]
+
+    common_commands = [
+        'java',
+        '-cp',
+        os.pathsep.join(['dare.jar', '.']),
+        'Main',
+        '--limithp',
+        str(c.PLAYER_HP),
+        str(c.PLAYER_HP),
+        # '-df',
+        '-r',
+        '1',
+        '-f',
+        str(c.GAME_DURATION_SEC * 60),
+        '--time-stamp',
+        c.GAME_TIME,
+        '--headless-mode',
+        '--input-sync',
+        '--lightweight-mode',
+        '--pyftg-mode',
+        '--non-delay',
+        '2',
+    ]
+
+    print(f'Java jar command:{" ".join(common_commands)}')
+
+    os.makedirs(os.path.join('log', 'engines'), exist_ok=True)
+
+    division = 3
+    characters = []
+    for _ in range(engine_count // division):
+        characters = [
+            *characters,
+            *[
+                character_name #
+                for combination in character_order_combinations
+                for character_name in [c.CHARACTER_ORDER_REVERSE[combination[0]], c.CHARACTER_ORDER_REVERSE[combination[1]]]  #
+            ],
+        ]
+
+    agents = np.full(shape=division * 2, fill_value=c.AgentNames.MCTS_AGENT).tolist()
+
+    await f.start_simulators(
+        gateways,
+        common_commands,
+        characters,
+        mutated_motions,
+        agents,
+        experiment_name,
+        # deterministic=deterministic, really dont care
+        extra_commands=argument_for_custom_motions,
+        division=division,
+    )
+
+    # To get the game results, we are going to get the HP differences in each game.
+    # The first implementation of this is going to be rather crude.
+    # We will assume that:
+    #   x % 3 == 0 -> zen vd garnet
+    #   x % 3 == 0 -> zen vd lud
+    #   x % 3 == 0 -> garnet vd lud
+
+    point_csv: pathlib.Path | None = next(pathlib.Path(os.path.join("log", "point")).glob(f"{experiment_name}*.csv"), None)
+    if point_csv is None:
+        raise FileExistsError(f"Glob failed to fined experiment | {point_csv} | in folder")
+    if not point_csv.exists():
+        raise FileExistsError(f"Point file | {point_csv} | doesn't exist folder")
+
+    point_df: pandas.DataFrame = f.read_match_results(point_csv)
+
+    hp_diff_zen_garnet = point_df.iloc[0::3][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
+    hp_diff_zen_lud = point_df.iloc[1::3][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
+    hp_diff_garnet_lud = point_df.iloc[2::3][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
+
+    # Think about this more, if we have z-g and z-l, do we need to add g-z again?
+    zen_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum()) / (no_matches * 2)
+    garnet_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (no_matches * 2)
+    lud_win_rate = ((hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (no_matches * 2)
+
+    return (zen_win_rate + garnet_win_rate + lud_win_rate) / 3
