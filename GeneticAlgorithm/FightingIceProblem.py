@@ -4,7 +4,10 @@ import numpy as np
 import pandas
 import functions as f
 import asyncio
+import pathlib
+import re
 
+import constants as c
 from MotionClasses.MotionHeaders import MotionHeaders as headers
 from MotionClasses.MotionNames import MotionNames as motion_names
 import MotionClasses.MotionEditor as motion_editor
@@ -31,9 +34,30 @@ import GeneticAlgorithm.genetic_functions as gf
 class FightingIceProblem(ElementwiseProblem):
     def __init__(
         self,
+        experiment_name: str,
+        no_matches: int = 1,
+        engine_multiplier: int = 1,
+        game_duration_sec: int = 60,
         elementwise: bool = True,
         **kwargs: Any,
     ) -> None:
+
+        self.experiment_name = experiment_name
+        self.no_matches = no_matches
+        self.engine_multiplier = engine_multiplier
+        self.game_duration_sec = game_duration_sec
+
+        # Going to adjust the experiment name if its already in use
+        experiment_name_regex = re.compile(rf"{experiment_name}_(\d+).*")
+        experiment_name_number: int = -1
+        for directory in pathlib.Path(c.CUSTOM_MOTION_PATH).iterdir():
+            match = experiment_name_regex.match(directory.name)
+            if match:
+                experiment_name_number = max(-1, int(match.group(1)))
+
+        self.experiment_name = f'{experiment_name}_{experiment_name_number + 1}'
+        print(f"Derived experiment name: {self.experiment_name}")
+
         # For the first iteration, we are only going to increase the hit damage for stand a, and energy add for stand b
         # Remember this is for every character
         self.motion_adjustments: dict[str, str] = {
@@ -89,10 +113,8 @@ class FightingIceProblem(ElementwiseProblem):
         x = x.astype(int)
 
         mutated_motions = [motion.copy() for motion in motion_editor.DEFAULT_MOTION_LIST]
-        print(mutated_motions[0].columns)
 
         adjustments = x.reshape(3, -1).copy()
-        print('adjustments', adjustments)
 
         # TODO: Right now, we are going to use a slow loop version, if you want this to work, we need to ensure that the dtypes we are adjusting are all the same.
         # I.E., numbers, strings, and booleans must be treated differently.
@@ -123,18 +145,21 @@ class FightingIceProblem(ElementwiseProblem):
             None,
         )
 
-        # competitve_reward = gf.competitive_balance(mutated_motions)
-        competitive_reward = asyncio.run(
+        average_win_rate = asyncio.run(
             gf.orchestrate_matches(
                 mutated_motions=mutated_motions,
-                no_matches=1,
-                experiment_name='first_run',
+                no_matches=self.no_matches,
+                experiment_name=self.experiment_name,
                 iteration_count=self.current_eval,
-                engine_count=3
+                engine_multiplier=self.engine_multiplier,
+                game_duration_sec=self.game_duration_sec
             )
         )
 
-        out['F'] = np.array([-uniqueness_reward, -competitive_reward], dtype=np.float64)
+        competitive_balance: float = f.transform_win_rate(average_win_rate)
+
+        out['F'] = np.array([0, -competitive_balance], dtype=np.float64)
+        # out['F'] = np.array([-uniqueness_reward, 0], dtype=np.float64)
         # out['G'] = np.array([uniqueness_reward, competitive_reward], dtype=np.float128)
 
         self.current_eval += 1

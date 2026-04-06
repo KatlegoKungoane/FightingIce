@@ -22,6 +22,7 @@
 # print('t', t)
 
 import constants as c
+import dill
 
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
@@ -29,10 +30,19 @@ from GeneticAlgorithm.FightingIceProblem import FightingIceProblem
 from pymoo.termination import get_termination
 
 res = minimize(
-    FightingIceProblem(),
-    NSGA2(pop_size=2),
-    get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 1),
+    problem=FightingIceProblem(
+        experiment_name='competitive_tests',
+        engine_multiplier=3,
+        no_matches=3,
+    ),
+    algorithm=NSGA2(
+        pop_size=30,
+    ),
+    termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 300),
     seed=1,
     save_history=True,
-    verbose=True
+    verbose=True,
 )
+
+with open('res.pkl', 'wb') as res_file:
+    dill.dump(res, res_file)

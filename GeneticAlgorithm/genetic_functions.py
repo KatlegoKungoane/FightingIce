@@ -20,9 +20,10 @@ def constraint_novelty_search(
     string_motions: np.ndarray | None,
     boolean_motions: np.ndarray | None,
 ) -> float:
-    num_zen_garnet_distance = np.linalg.norm(numerical_motions[0, :, me.ConstraintInformation.utilized_numerical_cols] - numerical_motions[1, :, me.ConstraintInformation.utilized_numerical_cols])
-    num_zen_lud_distance = np.linalg.norm(numerical_motions[0, :, me.ConstraintInformation.utilized_numerical_cols] - numerical_motions[2, :, me.ConstraintInformation.utilized_numerical_cols])
-    num_garnet_lud_distance = np.linalg.norm(numerical_motions[1, :, me.ConstraintInformation.utilized_numerical_cols] - numerical_motions[2, :, me.ConstraintInformation.utilized_numerical_cols])
+    numerical_motions_slice = numerical_motions.copy()[:, :, me.ConstraintInformation.utilized_numerical_cols]
+    num_zen_garnet_distance = np.linalg.norm(numerical_motions_slice[0] - numerical_motions_slice[1])
+    num_zen_lud_distance = np.linalg.norm(numerical_motions_slice[0] - numerical_motions_slice[2])
+    num_garnet_lud_distance = np.linalg.norm(numerical_motions_slice[1] - numerical_motions_slice[2])
 
     if string_motions is None:
         str_zen_garnet_distance = 0
@@ -43,28 +44,67 @@ def constraint_novelty_search(
         bool_garnet_lud_distance = np.linalg.norm((boolean_motions[1] != boolean_motions[2]).astype(int))
 
     # Adding a normalization to the uniqueness constraint
-    numerical_normalization: float = me.ConstraintInformation.THEORETICAL_MAX_NUMERICAL_UNIQUENESS_SINGLE_ROW * numerical_motions.shape[1]
+    numerical_normalization: float = (
+        me.ConstraintInformation.THEORETICAL_MAX_NUMERICAL_UNIQUENESS_SINGLE_ROW  #
+        * numerical_motions.shape[1]
+    )
+
     str_normalization: float = (
         1  #
         if string_motions is None
-        else string_motions[1] * string_motions[2]
+        else string_motions.shape[1] * string_motions.shape[2]
     )
+
     bool_normalization: float = (
         1  #
         if boolean_motions is None
-        else boolean_motions[1] * boolean_motions[2]
+        else boolean_motions.shape[1] * boolean_motions.shape[2]
     )
+
+    # return (
+    #     num_zen_garnet_distance / numerical_normalization
+    #     + num_zen_lud_distance / numerical_normalization
+    #     + num_garnet_lud_distance / numerical_normalization
+    #     + str_zen_garnet_distance / str_normalization
+    #     + str_zen_lud_distance / str_normalization
+    #     + str_garnet_lud_distance / str_normalization
+    #     + bool_zen_garnet_distance / bool_normalization
+    #     + bool_zen_lud_distance / bool_normalization
+    #     + bool_garnet_lud_distance / bool_normalization
+    # ) / 9
+
     return (
-        num_zen_garnet_distance / numerical_normalization
-        + num_zen_lud_distance / numerical_normalization
-        + num_garnet_lud_distance / numerical_normalization
-        + str_zen_garnet_distance / str_normalization
-        + str_zen_lud_distance / str_normalization
-        + str_garnet_lud_distance / str_normalization
-        + bool_zen_garnet_distance / bool_normalization
-        + bool_zen_lud_distance / bool_normalization
-        + bool_garnet_lud_distance / bool_normalization
-    ) / 9
+        f.calculate_harmonic_mean(
+            np.array(
+                [
+                    num_zen_garnet_distance,
+                    num_zen_lud_distance,
+                    num_garnet_lud_distance,
+                ]
+            ),
+            numerical_normalization,
+        )
+        + f.calculate_harmonic_mean(
+            np.array(
+                [
+                    str_zen_garnet_distance,
+                    str_zen_lud_distance,
+                    str_garnet_lud_distance,
+                ]
+            ),
+            str_normalization,
+        )
+        + f.calculate_harmonic_mean(
+            np.array(
+                [
+                    bool_zen_garnet_distance,
+                    bool_zen_lud_distance,
+                    bool_garnet_lud_distance,
+                ]
+            ),
+            bool_normalization,
+        )
+    ) / 3
 
 
 """
@@ -78,16 +118,18 @@ async def orchestrate_matches(
     no_matches: int,
     experiment_name: str,
     iteration_count: int,
-    engine_count: int = 3,
+    engine_multiplier: int,
+    game_duration_sec: int = 60,
 ) -> float:
+    # c.PLAYER_HP = 10000
     c.NO_GAMES = no_matches
     c.POLL_INTERVAL_SEC = 0
-    c.GAME_DURATION_SEC = 20
+    c.GAME_DURATION_SEC = game_duration_sec
 
-    experiment_name = f'{iteration_count}_{experiment_name}'
+    experiment_name = f'{experiment_name}_iter_{iteration_count}'
 
     # TODO: Do something about this if it fails
-    gateways = f.create_gateways(8500, 9000, limit=engine_count)
+    gateways = f.create_gateways(8000, 9000, limit=engine_multiplier * 3)
 
     custom_motion_paths: list[str] = [
         os.path.join(
@@ -104,18 +146,19 @@ async def orchestrate_matches(
             path=path,
         )
 
-    argument_for_custom_motions: list[str] = []
+    argument_for_custom_motions: np.ndarray = np.full(shape=(3, 6), dtype=object, fill_value='')
     character_order_combinations: list[tuple[int, int]] = list(combinations([0, 1, 2], 2))
-    for combination in character_order_combinations:
-        argument_for_custom_motions = [
-            *argument_for_custom_motions,
-            '--config-path',
-            '2',
-            c.CHARACTER_ORDER_REVERSE[combination[0]],
-            custom_motion_paths[combination[0]],
-            c.CHARACTER_ORDER_REVERSE[combination[1]],
-            custom_motion_paths[combination[1]],
-        ]
+    for index, combination in enumerate(character_order_combinations):
+        argument_for_custom_motions[index, :] = np.array(
+            [
+                '--config-path',
+                '2',
+                c.CHARACTER_ORDER_REVERSE[combination[0]],
+                custom_motion_paths[combination[0]],
+                c.CHARACTER_ORDER_REVERSE[combination[1]],
+                custom_motion_paths[combination[1]],
+            ]
+        )
 
     common_commands = [
         'java',
@@ -140,23 +183,18 @@ async def orchestrate_matches(
         '2',
     ]
 
-    print(f'Java jar command:{" ".join(common_commands)}')
+    # print(f'Java jar command:{" ".join(common_commands)}')
 
     os.makedirs(os.path.join('log', 'engines'), exist_ok=True)
 
-    division = 3
-    characters = []
-    for _ in range(engine_count // division):
-        characters = [
-            *characters,
-            *[
-                character_name  #
-                for combination in character_order_combinations
-                for character_name in [c.CHARACTER_ORDER_REVERSE[combination[0]], c.CHARACTER_ORDER_REVERSE[combination[1]]]  #
-            ],
-        ]
+    characters = [
+        character_name  #
+        for combination in character_order_combinations
+        for character_name in [c.CHARACTER_ORDER_REVERSE[combination[0]], c.CHARACTER_ORDER_REVERSE[combination[1]]]  #
+    ]
+    characters = np.array(characters).reshape(3, -1)
 
-    agents = np.full(shape=division * 2, fill_value=c.AgentNames.MCTS_AGENT).tolist()
+    agents = np.full(shape=(3, 2), fill_value=c.AgentNames.MCTS_AGENT)
 
     await f.start_simulators(
         gateways,
@@ -167,15 +205,15 @@ async def orchestrate_matches(
         experiment_name,
         # deterministic=deterministic, really dont care
         extra_commands=argument_for_custom_motions,
-        division=division,
+        engine_multiplier=engine_multiplier,
     )
 
     # To get the game results, we are going to get the HP differences in each game.
     # The first implementation of this is going to be rather crude.
     # We will assume that:
     #   x % 3 == 0 -> zen vd garnet
-    #   x % 3 == 0 -> zen vd lud
-    #   x % 3 == 0 -> garnet vd lud
+    #   x % 3 == 1 -> zen vd lud
+    #   x % 3 == 2 -> garnet vd lud
 
     point_csv: pathlib.Path | None = next(pathlib.Path(os.path.join('log', 'point')).glob(f'{experiment_name}*.csv'), None)
     if point_csv is None:
@@ -184,20 +222,37 @@ async def orchestrate_matches(
         raise FileExistsError(f"Point file | {point_csv} | doesn't exist folder")
 
     point_df: pandas.DataFrame = f.read_match_results(point_csv)
+    pairing_index = point_df[[c.PointHeaderNames.INSTANCE]].to_numpy()
 
-    hp_diff_zen_garnet = point_df.iloc[0::3][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
-    hp_diff_zen_lud = point_df.iloc[1::3][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
-    hp_diff_garnet_lud = point_df.iloc[2::3][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
+    hp_diff_zen_garnet = point_df[pairing_index % 3 == 0][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
+    hp_diff_zen_lud = point_df[pairing_index % 3 == 1][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
+    hp_diff_garnet_lud = point_df[pairing_index % 3 == 2][[c.PointHeaderNames.HP_ONE, c.PointHeaderNames.HP_TWO]].to_numpy().astype(np.int16)
 
     # Think about this more, if we have z-g and z-l, do we need to add g-z again?
-    zen_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum()) / (
-        no_matches * 2
-    )
-    garnet_win_rate = ((hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (
-        no_matches * 2
-    )
-    lud_win_rate = ((hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum() + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()) / (
-        no_matches * 2
+    zen_win_rate = (
+        (hp_diff_zen_garnet[:, 0] > hp_diff_zen_garnet[:, 1]).sum()  #
+        + (hp_diff_zen_lud[:, 0] > hp_diff_zen_lud[:, 1]).sum()
+    ) / (no_matches * engine_multiplier * 2)
+    garnet_win_rate = (
+        (hp_diff_zen_garnet[:, 0] < hp_diff_zen_garnet[:, 1]).sum()  #
+        + (hp_diff_garnet_lud[:, 0] > hp_diff_garnet_lud[:, 1]).sum()
+    ) / (no_matches * engine_multiplier * 2)
+    lud_win_rate = (
+        (hp_diff_zen_lud[:, 0] < hp_diff_zen_lud[:, 1]).sum()  #
+        + (hp_diff_garnet_lud[:, 0] < hp_diff_garnet_lud[:, 1]).sum()
+    ) / (no_matches * engine_multiplier * 2)
+
+    win_rates: np.ndarray = np.array(
+        [
+            zen_win_rate,
+            garnet_win_rate,
+            lud_win_rate,
+        ]
     )
 
-    return (zen_win_rate + garnet_win_rate + lud_win_rate) / 3
+    win_rates: np.ndarray = f.transform_win_rate_array(win_rates)
+
+    return min(
+        f.calculate_harmonic_mean(values=win_rates),
+        1,
+    )

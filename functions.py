@@ -8,13 +8,13 @@ import shutil
 import socket
 import subprocess
 import time
-import pandas
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Iterator
+import math
 
 import aiofiles
 import numpy as np
-from pyftg.socket.aio.gateway import Gateway
+import pandas
 from pyftg.socket.aio.gateway import Gateway
 
 import constants as c
@@ -360,18 +360,18 @@ async def monitor_matches(
         print(f'Port: {gateway.port} - {simulator.returncode}')
 
 
+# TODO: Will no longer support single usage. Can look into getting the capability back in future
 async def orchestrate_matches(
     gateways: list[Gateway],  #
     simulators: list[asyncio.subprocess.Process],
     simulator_ready_events: list[asyncio.Event],
     log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper],
-    character_names: list[str] | np.ndarray,
+    character_names: np.ndarray,
     motions: list[MotionEditor],
-    agent_names: list[str] | np.ndarray,
-    # experiment_names: list[str],
+    agent_names: np.ndarray,
     experiment_name: str,
     deterministic: bool = False,
-    division: int = 1,
+    engine_multiplier: int = 1,
 ) -> None:
     matches: list[asyncio.Task] = []
 
@@ -391,29 +391,17 @@ async def orchestrate_matches(
             experiment_name,
         )
 
-    for index, (
-        gateway,
-        agent_duo,
-        character_duo,
-    ) in enumerate(
-        zip(
-            gateways,
-            agent_names,
-            character_names,
-            strict=True,
-        )
-    ):
+    for index, gateway in enumerate(gateways):
         agent1 = None
         agent2 = None
         agent_1_name = None
         agent_2_name = None
 
-        if division == 1:
-            agent_1_motion = motions[0]
-            agent_2_motion = motions[1]
-        else:
-            agent_1_motion = motions[c.CHARACTER_ORDER[character_duo[0]]]
-            agent_2_motion = motions[c.CHARACTER_ORDER[character_duo[1]]]
+        character_duo = character_names[index % 3, :]
+        agent_duo = agent_names[index % 3, :]
+
+        agent_1_motion = motions[c.CHARACTER_ORDER[character_duo[0]]]
+        agent_2_motion = motions[c.CHARACTER_ORDER[character_duo[1]]]
 
         match agent_duo[0]:
             case c.AgentNames.KAT_KICK_AI:
@@ -471,55 +459,25 @@ async def orchestrate_matches(
     kill_processes(simulators, experiment_name)
 
 
+# TODO: This will no longer support single usage... Could look into giving it back that functionality
 async def start_simulators(
     gateways: list[Gateway],
-    common_commands: list[str] | np.ndarray,
-    characters: list[str] | np.ndarray,
+    common_commands: np.ndarray,
+    characters: np.ndarray,
     motions: list[MotionEditor],
-    agent_names: list[str] | np.ndarray,
+    agent_names: np.ndarray,
     experiment_name: str,
     deterministic: bool = True,  # We aren't really going to use this in future... should think of redacting
     extra_commands: list[str] | np.ndarray | None = None,
-    division: int = 1,
+    engine_multiplier: int = 3,
 ) -> None:
     if '-' in experiment_name:
         raise ValueError('Please avoid using experiment names with -, it will mess up the data consolidator')
-    if division == 0:
-        raise ValueError('You bloody plonker. Why is the division set to 0!??? We literally made this impossible. Wanker')
 
     is_extra_commands_empty = False
     if extra_commands is None:
         extra_commands = []
         is_extra_commands_empty = True
-
-    # Here we are just adding some support for running multiple instances with different purposes
-    # We are basically going to throw an error if we add a division, and stuff doesn't perfectly divide.
-    errors: list[str] = []
-
-    if len(gateways) % division != 0:
-        errors.append(f'Gateways ({len(gateways)}) is not divisible by d: {division}')
-
-    if len(characters) % division != 0:
-        errors.append(f'Characters ({len(characters)}) is not divisible by d: {division}')
-    else:
-        characters = np.array(characters).reshape(division, -1)
-
-    if len(motions) % division != 0:
-        errors.append(f'Motions ({len(motions)}) is not divisible by d: {division}')
-
-    if len(agent_names) % division != 0:
-        errors.append(f'Agent names ({len(agent_names)}) is not divisible by d: {division}')
-    else:
-        agent_names = np.array(agent_names).reshape(division, -1)
-
-    if not is_extra_commands_empty:
-        if len(extra_commands) % division != 0:
-            errors.append(f'Extra commands ({len(extra_commands)}) is not divisible by d: {division}')
-        else:
-            extra_commands = np.array(extra_commands).reshape(division, -1)
-
-    if len(errors) != 0:
-        raise RuntimeError('Errors occurred.\n' + '\n'.join(errors))
 
     simulators: list[asyncio.subprocess.Process] = []
     log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper] = []
@@ -527,25 +485,11 @@ async def start_simulators(
 
     task_containers: list[asyncio.Task] = []
 
-    for index, (gateway, character_duo) in enumerate(zip(gateways, characters, strict=True)):
-        # modified_experiment_name = (
-        #     experiment_name  #
-        #     if division == 1
-        #     else f'{experiment_name}-{character_duo[0].lower()}-vs-{character_duo[1].lower()}'
-        # )
-
+    for index, gateway in enumerate(gateways):
         log_files.append(
             await aiofiles.open(
                 f'log/engines/{experiment_name}-instance-{gateway.port}-{c.GAME_TIME}.log',
                 'w',
-            )
-        )
-
-        print(
-            *(
-                []  #
-                if is_extra_commands_empty
-                else extra_commands[index, :].tolist()
             )
         )
 
@@ -554,7 +498,7 @@ async def start_simulators(
             *(
                 []  #
                 if is_extra_commands_empty
-                else extra_commands[index, :].tolist()
+                else extra_commands[index % 3, :].tolist()
             ),
             '--port',
             str(gateway.port),
@@ -585,8 +529,8 @@ async def start_simulators(
         motions,
         agent_names,
         experiment_name,
-        division=division,
         deterministic=deterministic,
+        engine_multiplier=engine_multiplier,
     )
 
 
@@ -652,3 +596,18 @@ def read_match_results(file_name: str) -> pandas.DataFrame:
         ],
         dtype=c.PointHeaderNames.D_TYPE,
     )
+
+
+def calculate_harmonic_mean(
+    values: np.ndarray,
+    normalization_value: float = 1,
+    div_zero_slack: float = 1e-6,
+) -> float:
+    return values.shape[0] / (1 / ((values + div_zero_slack) / normalization_value)).sum()
+
+
+def transform_win_rate_array(win_rates: np.ndarray, sigma: float = 0.08) -> np.ndarray:
+    return np.exp(-(np.pow(0.5 - win_rates, 2)) / (2 * pow(sigma, 2)))
+
+def transform_win_rate(win_rate: float, sigma: float = 0.08) -> np.ndarray:
+    return math.exp(-(pow(0.5 - win_rate, 2)) / (2 * pow(sigma, 2)))
