@@ -3,6 +3,8 @@ log/
 .lwjgl/
 /custom_motions
 *.pkl
+out/
+err/
 ######
 
 # Byte-compiled / optimized / DLL files
