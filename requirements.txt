@@ -92,7 +92,7 @@ psutil
 pure_eval
 py4j
 pycparser
-pyftg=2.3.0
+pyftg==2.3.0
 Pygments
 pymoo
 pyparsing
