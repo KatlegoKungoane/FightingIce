@@ -120,6 +120,7 @@ async def orchestrate_matches(
     iteration_count: int,
     engine_multiplier: int,
     game_duration_sec: int = 60,
+    visual: bool = False,
 ) -> float:
     # c.PLAYER_HP = 10000
     c.NO_GAMES = no_matches
@@ -175,9 +176,9 @@ async def orchestrate_matches(
         str(c.GAME_DURATION_SEC * 60),
         '--time-stamp',
         c.GAME_TIME,
-        '--headless-mode',
+        *(['--headless-mode'] if not visual else []),
         '--input-sync',
-        '--lightweight-mode',
+        *(['--lightweight-mode'] if not visual else []),
         '--pyftg-mode',
         '--non-delay',
         '2',
@@ -205,7 +206,6 @@ async def orchestrate_matches(
         experiment_name,
         # deterministic=deterministic, really dont care
         extra_commands=argument_for_custom_motions,
-        engine_multiplier=engine_multiplier,
     )
 
     # To get the game results, we are going to get the HP differences in each game.

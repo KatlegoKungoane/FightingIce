@@ -92,3 +92,13 @@ class pymoo:
         GENERATION_LIMIT = 'n_gen'
         OBJECTIVE_THRESHOLD = 'fmin'
         TIME_LIMIT = 'time'
+
+    class MOEAD:
+        class SpreadType:
+            UNIFORM: str = "uniform"
+            DAS_DENNIS: str = "das-dennis"
+            ENERGY: str = "energy"
+            MULTI_LAYER: str = "multi-layer"
+            LAYER_ENERGY: str = "layer-energy"
+            REDUCTION: str = "reduction"
+            INCREMENTAL: str = "incremental"

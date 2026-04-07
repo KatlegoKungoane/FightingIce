@@ -39,9 +39,11 @@ class FightingIceProblem(ElementwiseProblem):
         engine_multiplier: int = 1,
         game_duration_sec: int = 60,
         elementwise: bool = True,
+        visual: bool = False,
         **kwargs: Any,
     ) -> None:
 
+        self.visual = visual
         self.experiment_name = experiment_name
         self.no_matches = no_matches
         self.engine_multiplier = engine_multiplier
@@ -153,7 +155,8 @@ class FightingIceProblem(ElementwiseProblem):
                 experiment_name=self.experiment_name,
                 iteration_count=self.current_eval,
                 engine_multiplier=self.engine_multiplier,
-                game_duration_sec=self.game_duration_sec
+                game_duration_sec=self.game_duration_sec,
+                visual=self.visual,
             )
         )
 

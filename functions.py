@@ -371,7 +371,6 @@ async def orchestrate_matches(
     agent_names: np.ndarray,
     experiment_name: str,
     deterministic: bool = False,
-    engine_multiplier: int = 1,
 ) -> None:
     matches: list[asyncio.Task] = []
 
@@ -469,7 +468,6 @@ async def start_simulators(
     experiment_name: str,
     deterministic: bool = True,  # We aren't really going to use this in future... should think of redacting
     extra_commands: list[str] | np.ndarray | None = None,
-    engine_multiplier: int = 3,
 ) -> None:
     if '-' in experiment_name:
         raise ValueError('Please avoid using experiment names with -, it will mess up the data consolidator')
@@ -530,7 +528,6 @@ async def start_simulators(
         agent_names,
         experiment_name,
         deterministic=deterministic,
-        engine_multiplier=engine_multiplier,
     )
 
 
