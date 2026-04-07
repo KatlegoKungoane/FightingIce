@@ -48,6 +48,7 @@ class FightingIceProblem(ElementwiseProblem):
         self.game_duration_sec = game_duration_sec
 
         # Going to adjust the experiment name if its already in use
+        pathlib.Path(c.CUSTOM_MOTION_PATH).mkdir(parents=True, exist_ok=True)
         experiment_name_regex = re.compile(rf"{experiment_name}_(\d+).*")
         experiment_name_number: int = -1
         for directory in pathlib.Path(c.CUSTOM_MOTION_PATH).iterdir():
