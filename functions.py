@@ -11,6 +11,7 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 import math
+import psutil
 
 import aiofiles
 import numpy as np
@@ -353,7 +354,7 @@ async def monitor_matches(
             # print(line, end="")
             # print(f"\033[{len(active_simulators) + 2}F", end="", flush=True)
 
-        await asyncio.sleep(1)
+        await asyncio.sleep(c.POLL_INTERVAL_SEC)
 
     print('All executions are closed')
     for simulator, gateway in zip(simulators, gateways, strict=True):
@@ -454,6 +455,7 @@ async def orchestrate_matches(
         await close_files(log_files)
         kill_processes(simulators, experiment_name)
 
+    c.end_time = time.perf_counter()
     await close_files(log_files)
     kill_processes(simulators, experiment_name)
 

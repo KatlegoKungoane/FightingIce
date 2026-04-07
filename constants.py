@@ -102,3 +102,7 @@ class pymoo:
             LAYER_ENERGY: str = "layer-energy"
             REDUCTION: str = "reduction"
             INCREMENTAL: str = "incremental"
+
+# Delete these, lazy way to track time
+start_time = 0
+end_time = 0

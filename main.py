@@ -84,12 +84,12 @@ async def run_games(no_engines: int):
 
 
 if __name__ == '__main__':
-    start_time = time.perf_counter()
-    c.NO_GAMES = 1
+    c.start_time = time.perf_counter()
+    # c.PLAYER_HP = 10000
+    c.NO_GAMES = 2
     c.POLL_INTERVAL_SEC = 0
-    asyncio.run(run_games(no_engines=30))
-    end_time = time.perf_counter()
-    print(f'time: {end_time - start_time}')
+    asyncio.run(run_games(no_engines=25))
+    print(f'time: {c.end_time - c.start_time}')
 
 
 
