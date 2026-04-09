@@ -15,14 +15,23 @@ DEFAULT_MOTIONS_PATH: str = os.path.join('data', 'characters')
 MOTIONS_FILE_NAME: str = 'Motion.csv'
 CUSTOM_MOTION_PATH: str = 'custom_motions'
 
-KNOWN_LOGS: list[str] = [
-    'engines',
-    'frameData',
-    'motions',
-    'point',
-    'replay',
-    'sound',  # We dont really use this though...
-]
+class LOGS:
+    ENGINES: str = 'engines'
+    FRAME_DATA: str = 'frameData'
+    MOTIONS: str = 'motions'
+    POINT: str = 'point'
+    REPLAY: str = 'replay'
+    SOUND: str = 'sound'
+
+
+    KNOWN_LOGS: list[str] = [
+        ENGINES,
+        FRAME_DATA,
+        MOTIONS,
+        POINT,
+        REPLAY,
+        SOUND,  # We dont really use this though...
+    ]
 
 GAME_TIME: str = datetime.datetime.now().strftime('%Y.%m.%d_%H.%M.%S')
 

@@ -6,6 +6,8 @@ import functions as f
 import asyncio
 import pathlib
 import re
+from pymoo.parallelization.dask import DaskParallelization
+from pymoo.core.problem import LoopedElementwiseEvaluation
 
 import constants as c
 from MotionClasses.MotionHeaders import MotionHeaders as headers
@@ -40,6 +42,7 @@ class FightingIceProblem(ElementwiseProblem):
         game_duration_sec: int = 60,
         elementwise: bool = True,
         visual: bool = False,
+        elementwise_runner: DaskParallelization | None = None,
         **kwargs: Any,
     ) -> None:
 
@@ -51,7 +54,7 @@ class FightingIceProblem(ElementwiseProblem):
 
         # Going to adjust the experiment name if its already in use
         pathlib.Path(c.CUSTOM_MOTION_PATH).mkdir(parents=True, exist_ok=True)
-        experiment_name_regex = re.compile(rf"{experiment_name}_(\d+).*")
+        experiment_name_regex = re.compile(rf'{experiment_name}_(\d+).*')
         experiment_name_number: int = -1
         for directory in pathlib.Path(c.CUSTOM_MOTION_PATH).iterdir():
             match = experiment_name_regex.match(directory.name)
@@ -59,7 +62,7 @@ class FightingIceProblem(ElementwiseProblem):
                 experiment_name_number = max(-1, int(match.group(1)))
 
         self.experiment_name = f'{experiment_name}_{experiment_name_number + 1}'
-        print(f"Derived experiment name: {self.experiment_name}")
+        print(f'Derived experiment name: {self.experiment_name}')
 
         # For the first iteration, we are only going to increase the hit damage for stand a, and energy add for stand b
         # Remember this is for every character
@@ -90,6 +93,9 @@ class FightingIceProblem(ElementwiseProblem):
                 xl[character_index * (gene_count // 3) + index] = headers.MOTION_LIMITS[header]['min']
                 xu[character_index * (gene_count // 3) + index] = headers.MOTION_LIMITS[header]['max']
 
+        if elementwise_runner is None:
+            elementwise_runner = LoopedElementwiseEvaluation()
+
         super().__init__(
             elementwise,
             **kwargs,
@@ -99,6 +105,7 @@ class FightingIceProblem(ElementwiseProblem):
             n_ieq_constr=0,
             xl=xl,
             xu=xu,
+            elementwise_runner=elementwise_runner,
         )
 
         self.current_eval: int = 0
@@ -113,6 +120,7 @@ class FightingIceProblem(ElementwiseProblem):
         # Get uniqueness reward
         # Get competitive balance reward
 
+        # TODO: FIX ME PROPERLY
         x = x.astype(int)
 
         mutated_motions = [motion.copy() for motion in motion_editor.DEFAULT_MOTION_LIST]

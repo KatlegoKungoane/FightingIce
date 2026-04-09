@@ -29,6 +29,8 @@ import asyncio
 import time
 import os
 import numpy as np
+from distributed import Client, LocalCluster
+import sys
 
 import MotionClasses.MotionEditor as me
 from pymoo.algorithms.moo.moead import MOEAD
@@ -38,96 +40,112 @@ from GeneticAlgorithm.FightingIceProblem import FightingIceProblem
 from pymoo.termination import get_termination
 from pymoo.util.ref_dirs import get_reference_directions
 from pymoo.decomposition.pbi import PBI
+from pymoo.parallelization.dask import DaskParallelization
 
 
-async def run_games(no_engines: int):
-    gateways = f.create_gateways(start_port=8000, end_port=9000, limit=no_engines)
-
-    common_commands = [
-        'java',
-        '-cp',
-        os.pathsep.join(['dare.jar', '.']),
-        'Main',
-        '--limithp',
-        str(c.PLAYER_HP),
-        str(c.PLAYER_HP),
-        # '-df',
-        '-r',
-        '1',
-        '-f',
-        str(c.GAME_DURATION_SEC * 60),
-        '--time-stamp',
-        c.GAME_TIME,
-        '--headless-mode',
-        '--input-sync',
-        '--lightweight-mode',
-        '--pyftg-mode',
-        '--non-delay',
-        '2',
-    ]
-    await f.start_simulators(
-        gateways=gateways,
-        common_commands=common_commands,
-        characters=np.array(
-            [
-                [c.CHARACTERS.ZEN.name, c.CHARACTERS.GARNET.name],
-                [c.CHARACTERS.ZEN.name, c.CHARACTERS.LUD.name],
-                [c.CHARACTERS.GARNET.name, c.CHARACTERS.LUD.name],
-            ]
-        ),
-        # Not really used anyways
-        motions=me.DEFAULT_MOTION_LIST,
-        agent_names=np.full(shape=(3, 2), dtype=object, fill_value=c.AgentNames.MCTS_AGENT),
-        experiment_name='low',
-        deterministic=True,
-    )
+# async def run_games(no_engines: int):
+#     common_commands = [
+#         'java',
+#         '-cp',
+#         os.pathsep.join(['dare.jar', '.']),
+#         'Main',
+#         '--limithp',
+#         str(c.PLAYER_HP),
+#         str(c.PLAYER_HP),
+#         # '-df',
+#         '-r',
+#         '1',
+#         '-f',
+#         str(c.GAME_DURATION_SEC * 60),
+#         '--time-stamp',
+#         c.GAME_TIME,
+#         # '--headless-mode',
+#         '--input-sync',
+#         # '--lightweight-mode',
+#         '--pyftg-mode',
+#         '--non-delay',
+#         '2',
+#     ]
+#     await f.start_simulators(
+#         no_engines=no_engines,
+#         common_commands=common_commands,
+#         characters=np.array(
+#             [
+#                 [c.CHARACTERS.ZEN.name, c.CHARACTERS.GARNET.name],
+#                 [c.CHARACTERS.ZEN.name, c.CHARACTERS.LUD.name],
+#                 [c.CHARACTERS.GARNET.name, c.CHARACTERS.LUD.name],
+#             ]
+#         ),
+#         # Not really used anyways
+#         motions=me.DEFAULT_MOTION_LIST,
+#         agent_names=np.full(shape=(3, 2), dtype=object, fill_value=c.AgentNames.MCTS_AGENT),
+#         experiment_name='low',
+#         deterministic=True,
+#     )
 
 
-if __name__ == '__main__':
-    c.start_time = time.perf_counter()
-    # c.PLAYER_HP = 10000
-    c.NO_GAMES = 2
-    c.POLL_INTERVAL_SEC = 0
-    asyncio.run(run_games(no_engines=25))
-    print(f'time: {c.end_time - c.start_time}')
-
+# if __name__ == '__main__':
+#     c.start_time = time.perf_counter()
+#     # c.PLAYER_HP = 10000
+#     c.NO_GAMES = 2
+#     c.POLL_INTERVAL_SEC = 0
+#     asyncio.run(run_games(no_engines=3))
+#     print(f'time: {c.end_time - c.start_time}')
 
 
 # Clock time experiments
 # MOEAD - pop = 3 - time = 222.09393120001187
 # NSGA - pop = 3 - time = 236.92388630000642
 
-# start_time = time.perf_counter()
+if __name__ == '__main__':
+    scheduler_address = os.environ.get('DASK_SCHEDULER_ADDRESS')
+    client = Client(scheduler_address) if scheduler_address else Client(n_workers=2, threads_per_worker=2)
 
-# res = minimize(
-#     problem=FightingIceProblem(
-#         experiment_name='clock_time_test',
-#         engine_multiplier=3,
-#         no_matches=3,
-#         game_duration_sec=10,
-#         visual=False,
-#     ),
-#     algorithm=MOEAD(
-#         # N = n_partitions + 1 (for n_obj == 2)
-#         # Must be greater than n_neighbors
-#         ref_dirs=get_reference_directions(
-#             c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
-#             n_dim=2,
-#             n_partitions=2,
-#         ),
-#         # Magic number is 20
-#         n_neighbors=2,
-#         decomposition=PBI(),
-#     ),
-#     # algorithm=NSGA2(pop_size=3),
-#     termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 9),
-#     seed=1,
-#     save_history=True,
-#     verbose=True,
-# )
+    print(f'Dask Dashboard available at: {client.dashboard_link}')
 
-# end_time = time.perf_counter()
-# print(f'time: {end_time - start_time}')
+    try:
+        runner = DaskParallelization(client)
 
-# with open('res.pkl', 'wb') as res_file:
-#     dill.dump(res, res_file)
+        problem = FightingIceProblem(
+            experiment_name='dask_tests',
+            engine_multiplier=1,
+            no_matches=1,
+            game_duration_sec=60,
+            visual=False,
+            elementwise_runner=runner,
+        )
+
+        start_time = time.perf_counter()
+        c.PLAYER_HP = 1000
+        res = minimize(
+            problem=problem,
+            algorithm=MOEAD(
+                # N = n_partitions + 1 (for n_obj == 2)
+                # Must be greater than n_neighbors
+                ref_dirs=get_reference_directions(
+                    c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
+                    n_dim=2,
+                    n_partitions=3,
+                ),
+                # Magic number is 20
+                n_neighbors=2,
+                decomposition=PBI(),
+            ),
+            # algorithm=NSGA2(pop_size=3),
+            termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 8),
+            seed=1,
+            save_history=True,
+            verbose=True,
+        )
+
+        client.close()
+
+        f.consolidate_data(problem.experiment_name)
+
+        end_time = time.perf_counter()
+        print(f'time: {end_time - start_time}')
+
+        with open('res.pkl', 'wb') as res_file:
+            dill.dump(res, res_file)
+    finally:
+        client.close()

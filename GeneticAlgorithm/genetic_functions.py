@@ -129,9 +129,6 @@ async def orchestrate_matches(
 
     experiment_name = f'{experiment_name}_iter_{iteration_count}'
 
-    # TODO: Do something about this if it fails
-    gateways = f.create_gateways(8000, 9000, limit=engine_multiplier * 3)
-
     custom_motion_paths: list[str] = [
         os.path.join(
             c.CUSTOM_MOTION_PATH,
@@ -198,7 +195,7 @@ async def orchestrate_matches(
     agents = np.full(shape=(3, 2), fill_value=c.AgentNames.MCTS_AGENT)
 
     await f.start_simulators(
-        gateways,
+        engine_multiplier * 3,
         common_commands,
         characters,
         mutated_motions,
@@ -207,6 +204,8 @@ async def orchestrate_matches(
         # deterministic=deterministic, really dont care
         extra_commands=argument_for_custom_motions,
     )
+
+    f.consolidate_data(experiment_name, log_list=[c.LOGS.POINT])
 
     # To get the game results, we are going to get the HP differences in each game.
     # The first implementation of this is going to be rather crude.

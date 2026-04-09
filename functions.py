@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import datetime
+import math
 import os
 import pathlib
 import re
@@ -10,8 +11,7 @@ import subprocess
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
-import math
-import psutil
+from itertools import islice
 
 import aiofiles
 import numpy as np
@@ -19,6 +19,7 @@ import pandas
 from pyftg.socket.aio.gateway import Gateway
 
 import constants as c
+import functions as f
 from agents.KatKickAi import KatKickAi
 from MotionClasses.MotionEditor import MotionEditor
 
@@ -135,24 +136,31 @@ def get_number_from_file_name(file_name: str, string_to_find: str) -> int:
     return -1
 
 
-def consolidate_data(experiment_name: str) -> None:
+def consolidate_data(
+    experiment_name: str,
+    log_list: list[str] | None = None,
+) -> None:
     # We will first throw an error if you add a folder to the logs that we are not aware of
     directory: pathlib.Path = pathlib.Path('log')
     unknown_directories: list[str] = []
 
-    for folder in directory.iterdir():
-        if folder.is_dir() and folder.name not in c.KNOWN_LOGS:
-            unknown_directories.append(folder.name)
+    use_default_log_list: bool = log_list is None
+    if use_default_log_list:
+        log_list = c.LOGS.KNOWN_LOGS
 
-    if len(unknown_directories) != 0:
-        raise FileNotFoundError(
-            'Known log directories are:',  #
-            ','.join(c.KNOWN_LOGS),
-            '\nFound these unknown directories:',
-            ','.join(unknown_directories),
-        )
+        for folder in directory.iterdir():
+            if folder.is_dir() and folder.name not in log_list:
+                unknown_directories.append(folder.name)
 
-    for log_group_name in c.KNOWN_LOGS:
+        if len(unknown_directories) != 0:
+            raise FileNotFoundError(
+                'Known log directories are:',  #
+                ','.join(log_list),
+                '\nFound these unknown directories:',
+                ','.join(unknown_directories),
+            )
+
+    for log_group_name in log_list:
         log_group: pathlib.Path = directory.joinpath(log_group_name)
         # We will first check if it is already in a folder
 
@@ -177,7 +185,7 @@ def consolidate_data(experiment_name: str) -> None:
             if len(experiment_files) == 0:
                 continue
 
-            if log_group_name == 'replay':
+            if log_group_name == c.LOGS.REPLAY:
                 experiment_folder_name: str = f'{experiment_name}-{c.GAME_TIME}'
                 log_group_path: str = os.path.join('log', log_group_name)
                 experiment_folder_path: str = os.path.join(log_group_path, experiment_folder_name)
@@ -206,20 +214,20 @@ def consolidate_data(experiment_name: str) -> None:
 					we will handle the points and the frame data differently.
 				"""
                 with consolidated_file_name.open(mode='w') as consolidated_file:
-                    if log_group_name == 'frameData':
+                    if log_group_name == c.LOGS.FRAME_DATA:
                         consolidated_file.write('[')
 
                     for experiment_file in experiment_files:
                         if experiment_file.name == consolidated_file_name.name:
                             continue
 
-                        if log_group_name == 'frameData':
+                        if log_group_name == c.LOGS.FRAME_DATA:
                             consolidated_file.write(f'{{"{experiment_file.name}":')
-                        elif log_group_name != 'point':
+                        elif log_group_name != c.LOGS.POINT:
                             consolidated_file.write(f'{experiment_file}\n')
 
                         with experiment_file.open(mode='r') as src_file:
-                            if log_group_name == 'point':
+                            if log_group_name == c.LOGS.POINT:
                                 instance_number: int = get_number_from_file_name(experiment_file.name, 'instance')
                                 round_number: int = get_number_from_file_name(experiment_file.name, 'round')
                                 match_result: list[str] = src_file.readline().split(',')
@@ -231,32 +239,16 @@ def consolidate_data(experiment_name: str) -> None:
                             else:
                                 shutil.copyfileobj(src_file, consolidated_file)
 
-                        if log_group_name == 'frameData':
+                        if log_group_name == c.LOGS.FRAME_DATA:
                             consolidated_file.write('},\n')
                         else:
                             consolidated_file.write('\n')
 
                         experiment_file.unlink(missing_ok=True)
 
-                    if log_group_name == 'frameData':
+                    if log_group_name == c.LOGS.FRAME_DATA:
                         consolidated_file.write(']')
 
-
-def create_gateways(start_port: int, end_port: int, limit: int = 100) -> list[Gateway]:
-    gateways: list[Gateway] = []
-
-    for port in range(start_port, end_port + 1):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            try:
-                s.bind(('127.0.0.1', port))
-                gateways.append(Gateway(port=port))
-            except OSError:
-                continue
-
-        if len(gateways) >= limit:
-            break
-
-    return gateways
 
 
 def kill_process(process: asyncio.subprocess.Process) -> None:
@@ -281,9 +273,9 @@ async def close_files(log_files: list[aiofiles.threadpool.text.AsyncTextIOWrappe
 
 
 def kill_processes(
-    simulators: list[asyncio.subprocess.Process],  #
+    simulators: list[asyncio.subprocess.Process],
     experiment_name: str,
-    consolidate_input: bool = True,
+    consolidate_input: bool = False,
 ) -> None:
     for simulator in simulators:
         kill_process(simulator)
@@ -295,7 +287,7 @@ def kill_processes(
 async def process_simulator_logs(
     subprocess: list[asyncio.subprocess.Process],
     log_file: aiofiles.threadpool.text.AsyncTextIOWrapper,
-    port: int,
+    process_id: int,
     ready_event: asyncio.Event,
 ) -> None:
     while True:
@@ -311,20 +303,19 @@ async def process_simulator_logs(
             ready_event.set()
 
         if any(err in line for err in ['Exception', 'Error', 'SEVERE']):
-            print(f'!!! CRITICAL ERROR ON PORT {port} !!!\n{line}')
+            print(f'!!! CRITICAL ERROR ON PROCESS {process_id} !!!\n{line}')
             kill_process(subprocess)
             break
 
 
 async def monitor_matches(
-    gateways: list[Gateway],  #
     simulators: list[asyncio.subprocess.Process],
     matches: list[asyncio.Task],
 ) -> None:
     last_heartbeat: float = time.time() + c.POLL_INTERVAL_SEC
     while True:
         active_simulators: np.ndarray = np.full(
-            shape=len(gateways),
+            shape=len(simulators),
             fill_value=False,
             dtype=bool,
         )
@@ -341,7 +332,7 @@ async def monitor_matches(
             print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             line: str = ''
             for index, is_active in enumerate(active_simulators):
-                line += f'Port: {gateways[index].port} - {"ACTIVE" if is_active else "DEAD  "}'
+                line += f'PID: {simulators[index].pid} - {"ACTIVE" if is_active else "DEAD  "}'
             print(line)
             for match in matches:
                 print(f'Match {"playing" if not match.done() else "finished"}')
@@ -357,13 +348,25 @@ async def monitor_matches(
         await asyncio.sleep(c.POLL_INTERVAL_SEC)
 
     print('All executions are closed')
-    for simulator, gateway in zip(simulators, gateways, strict=True):
-        print(f'Port: {gateway.port} - {simulator.returncode}')
+    for simulator in simulators:
+        print(f'PID: {simulator.pid} - {simulator.returncode}')
+
+
+async def stop_orchestration(
+    simulators: list[asyncio.subprocess.Process],
+    experiment_name: str,
+    task_containers: list[asyncio.Task],
+    log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper],
+) -> None:
+    kill_processes(simulators, experiment_name)
+    await asyncio.gather(*task_containers, return_exceptions=True)
+    await close_files(log_files)
 
 
 # TODO: Will no longer support single usage. Can look into getting the capability back in future
 async def orchestrate_matches(
-    gateways: list[Gateway],  #
+    no_engines: int,
+    task_containers: list[asyncio.Task],
     simulators: list[asyncio.subprocess.Process],
     simulator_ready_events: list[asyncio.Event],
     log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper],
@@ -384,14 +387,21 @@ async def orchestrate_matches(
         print('All engines are ready')
     except asyncio.TimeoutError:
         print('One or more engines failed to start in time!')
-        await close_files(log_files)
-
-        kill_processes(
+        await stop_orchestration(
             simulators,
             experiment_name,
+            task_containers,
+            log_files,
         )
 
-    for index, gateway in enumerate(gateways):
+    for index in range(no_engines):
+        port: int | None = f.get_port_number_from_engine_logs(experiment_name, simulators[index].pid)
+
+        if port is None:
+            raise RuntimeError('FAILED TO GET PORT NUMBER FROM FILE, ABORT ALL')
+
+        gateway = Gateway(port=port)
+
         agent1 = None
         agent2 = None
         agent_1_name = None
@@ -447,22 +457,30 @@ async def orchestrate_matches(
     duration: float = c.GAME_DURATION_SEC * c.NO_GAMES * 1.5
     try:
         await asyncio.wait_for(
-            monitor_matches(gateways, simulators, matches),
+            monitor_matches(simulators, matches),
             timeout=duration,
         )
     except asyncio.TimeoutError:
         print(f'[CRITICAL] Experiment exceeded time limit: {duration} sec. Shutting down.')
-        await close_files(log_files)
-        kill_processes(simulators, experiment_name)
+        await stop_orchestration(
+            simulators,
+            experiment_name,
+            task_containers,
+            log_files,
+        )
 
     c.end_time = time.perf_counter()
-    await close_files(log_files)
-    kill_processes(simulators, experiment_name)
+    await stop_orchestration(
+        simulators,
+        experiment_name,
+        task_containers,
+        log_files,
+    )
 
 
 # TODO: This will no longer support single usage... Could look into giving it back that functionality
 async def start_simulators(
-    gateways: list[Gateway],
+    no_engines: int,
     common_commands: np.ndarray,
     characters: np.ndarray,
     motions: list[MotionEditor],
@@ -481,18 +499,11 @@ async def start_simulators(
 
     simulators: list[asyncio.subprocess.Process] = []
     log_files: list[aiofiles.threadpool.text.AsyncTextIOWrapper] = []
-    simulator_ready_events: list[asyncio.Event] = [asyncio.Event() for _ in gateways]
+    simulator_ready_events: list[asyncio.Event] = [asyncio.Event() for _ in range(no_engines)]
 
     task_containers: list[asyncio.Task] = []
 
-    for index, gateway in enumerate(gateways):
-        log_files.append(
-            await aiofiles.open(
-                f'log/engines/{experiment_name}-instance-{gateway.port}-{c.GAME_TIME}.log',
-                'w',
-            )
-        )
-
+    for index in range(no_engines):
         proc = await asyncio.create_subprocess_exec(
             *common_commands,
             *(
@@ -500,28 +511,35 @@ async def start_simulators(
                 if is_extra_commands_empty
                 else extra_commands[index % 3, :].tolist()
             ),
-            '--port',
-            str(gateway.port),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
         simulators.append(proc)
+
+        log_files.append(
+            await aiofiles.open(
+                # f'log/engines/{experiment_name}-instance-{gateway.port}-{c.GAME_TIME}.log',
+                f'log/engines/{experiment_name}-pid-{proc.pid}-{c.GAME_TIME}.log',
+                'w',
+            )
+        )
 
         task_containers.append(
             asyncio.create_task(
                 process_simulator_logs(
                     proc,
                     log_files[index],
-                    gateway.port,
+                    proc.pid,
                     simulator_ready_events[index],
                 )
             )
         )
 
-        print(f'Engine started (PID: {simulators[index].pid}, PORT: {gateway.port}).')
+        print(f'Engine started (PID: {simulators[index].pid}.')
 
     await orchestrate_matches(
-        gateways,
+        no_engines,
+        task_containers,
         simulators,
         simulator_ready_events,
         log_files,
@@ -608,5 +626,25 @@ def calculate_harmonic_mean(
 def transform_win_rate_array(win_rates: np.ndarray, sigma: float = 0.08) -> np.ndarray:
     return np.exp(-(np.pow(0.5 - win_rates, 2)) / (2 * pow(sigma, 2)))
 
+
 def transform_win_rate(win_rate: float, sigma: float = 0.08) -> np.ndarray:
     return math.exp(-(pow(0.5 - win_rate, 2)) / (2 * pow(sigma, 2)))
+
+
+def get_port_number_from_engine_logs(experiment_name: str, pid: int) -> int | None:
+    try:
+        engine_logs_path = pathlib.Path(os.path.join('log', 'engines', f'{experiment_name}-pid-{pid}-{c.GAME_TIME}.log'))
+        with open(engine_logs_path) as file:
+            content: str = ''.join(list(islice(file, 10)))
+            pattern: re.Pattern = re.compile(r'<PORT>:(\d+)')
+
+            match = pattern.search(content)
+
+            if match:
+                return int(match.group(1))
+    except FileNotFoundError:
+        print(f'FILE NOT FOUND: {engine_logs_path}')
+    except Exception as e:
+        print(f'An error occured when trying to get port from {engine_logs_path}\n{e}')
+
+    return None
