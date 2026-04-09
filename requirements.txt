@@ -1,3 +1,4 @@
+# Remember to delete pywinpty
 about-time
 aiofiles
 alive-progress
@@ -105,7 +106,6 @@ pymoo
 pyparsing
 python-dateutil
 python-json-logger
-pywinpty
 PyYAML
 pyzmq
 referencing
