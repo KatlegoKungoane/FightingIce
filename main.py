@@ -130,7 +130,7 @@ if __name__ == '__main__':
                 n_neighbors=10,
                 decomposition=PBI(),
             ),
-            termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 5),
+            termination=get_termination(c.pymoo.TERMINATION.GENERATION_LIMIT, 5),
             seed=1,
             save_history=True,
             verbose=True,
