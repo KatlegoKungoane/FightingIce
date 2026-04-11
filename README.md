@@ -6,6 +6,8 @@
 - Add constraints for the meta state (G)
 - Logging: Ensure log/engines/ is on the cluster's high-speed "scratch" storage, or the I/O might slow down your simulation.
 - Correct the uniqueness constraint... Its looking at everything, which isnt fair. We need louder signals for things we actually control.
+- Chat said that the flop is that I do too many disk writes. I need to save things to a tmp folder then move it over when I am done. This is the disk on the node itself, and information doesn't have to travel over the network.
+
 
 # Note list
 - N in MOEA is calculated as:

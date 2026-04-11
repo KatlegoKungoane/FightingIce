@@ -305,9 +305,9 @@ async def process_simulator_logs(
 
         line: str = line_bytes.decode().strip()
         await log_file.write(line + '\n')
-        await log_file.flush()
 
         if 'Waiting to launch a game' in line:
+            await log_file.flush()
             ready_event.set()
 
         if any(err in line for err in ['Exception', 'Error', 'SEVERE']):
