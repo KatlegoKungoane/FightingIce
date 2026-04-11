@@ -99,7 +99,7 @@ from pymoo.parallelization.dask import DaskParallelization
 
 if __name__ == '__main__':
     scheduler_address = os.environ.get('DASK_SCHEDULER_ADDRESS')
-    client = Client(scheduler_address) if scheduler_address else Client(n_workers=2, threads_per_worker=2)
+    client = Client(scheduler_address) if scheduler_address else Client(n_workers=20, threads_per_worker=2)
 
     print(f'Dask Dashboard available at: {client.dashboard_link}')
 
@@ -108,11 +108,11 @@ if __name__ == '__main__':
 
         problem = FightingIceProblem(
             experiment_name='dask_tests',
-            engine_multiplier=1,
+            engine_multiplier=2,
             no_matches=1,
             game_duration_sec=60,
             visual=False,
-            elementwise_runner=runner,
+            # elementwise_runner=runner,
         )
 
         start_time = time.perf_counter()
@@ -124,13 +124,13 @@ if __name__ == '__main__':
                 ref_dirs=get_reference_directions(
                     c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
                     n_dim=2,
-                    n_partitions=3,
+                    n_partitions=19,
                 ),
                 # Magic number is 20
-                n_neighbors=2,
+                n_neighbors=10,
                 decomposition=PBI(),
             ),
-            termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 24),
+            termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 5),
             seed=1,
             save_history=True,
             verbose=True,

@@ -4,6 +4,7 @@ import pandas
 import os
 from itertools import combinations
 import pathlib
+from datetime import datetime
 
 import constants as c
 import functions as f
@@ -213,7 +214,14 @@ async def orchestrate_matches(
     #   x % 3 == 1 -> zen vd lud
     #   x % 3 == 2 -> garnet vd lud
 
-    point_csv: pathlib.Path | None = next(pathlib.Path(os.path.join('log', 'point')).glob(f'{experiment_name}*.csv'), None)
+    point_path: pathlib.Path = pathlib.Path(os.path.join('log', 'point'))
+    point_path_glob = point_path.glob(f'{experiment_name}*.csv')
+    folder_content_list = []
+    for glob_result in point_path_glob:
+        folder_content_list.append(glob_result.name)
+    folder_content: str = ", ".join(folder_content_list)
+    print(f'Trying to find |{experiment_name}| in {folder_content} at {datetime.now().strftime('%H:%M:%S')}')
+    point_csv: pathlib.Path | None = next(point_path.glob(f'{experiment_name}*.csv'), None)
     if point_csv is None:
         raise FileExistsError(f'Glob failed to fined experiment | {point_csv} | in folder')
     if not point_csv.exists():

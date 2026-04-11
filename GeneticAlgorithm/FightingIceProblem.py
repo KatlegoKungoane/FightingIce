@@ -165,7 +165,7 @@ class FightingIceProblem(ElementwiseProblem):
                 experiment_name=self.experiment_name,
                 # Could use this, but we already include the date in the other indicators, so unnecessary
                 # %Y%m%d_%H%M%S
-                experiment_suffix=f'{experiment_suffix_uuid}_{experiment_suffix_time}',
+                experiment_suffix=f'{experiment_suffix_time}_{experiment_suffix_uuid}',
                 engine_multiplier=self.engine_multiplier,
                 game_duration_sec=self.game_duration_sec,
                 visual=self.visual,
