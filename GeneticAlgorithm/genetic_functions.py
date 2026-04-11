@@ -220,7 +220,8 @@ async def orchestrate_matches(
     for glob_result in point_path_glob:
         folder_content_list.append(glob_result.name)
     folder_content: str = ", ".join(folder_content_list)
-    print(f'Trying to find |{experiment_name}| in {folder_content} at {datetime.now().strftime('%H:%M:%S')}')
+    rn_str = datetime.now().strftime('%H:%M:%S')
+    print(f'Trying to find |{experiment_name}| in {folder_content} at {rn_str}')
     point_csv: pathlib.Path | None = next(point_path.glob(f'{experiment_name}*.csv'), None)
     if point_csv is None:
         raise FileExistsError(f'Glob failed to fined experiment | {point_csv} | in folder')
