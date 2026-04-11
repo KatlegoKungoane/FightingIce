@@ -1,21 +1,20 @@
-from typing import Any
-from pymoo.core.problem import ElementwiseProblem
-import numpy as np
-import pandas
-import functions as f
 import asyncio
 import pathlib
 import re
-from pymoo.parallelization.dask import DaskParallelization
-from pymoo.core.problem import LoopedElementwiseEvaluation
 import uuid
 from datetime import datetime
+from typing import Any
+
+import numpy as np
+from pymoo.core.problem import ElementwiseProblem, LoopedElementwiseEvaluation
+from pymoo.parallelization.dask import DaskParallelization
 
 import constants as c
+import functions as f
+import GeneticAlgorithm.genetic_functions as gf
+import MotionClasses.MotionEditor as motion_editor
 from MotionClasses.MotionHeaders import MotionHeaders as headers
 from MotionClasses.MotionNames import MotionNames as motion_names
-import MotionClasses.MotionEditor as motion_editor
-import GeneticAlgorithm.genetic_functions as gf
 
 """
     * We need to think about if we are going to use Problem or ElementWiseProblem.
@@ -156,6 +155,9 @@ class FightingIceProblem(ElementwiseProblem):
             None,
         )
 
+        experiment_suffix_uuid: str = uuid.uuid4().hex[:6]
+        experiment_suffix_time: str = datetime.now().strftime('%H%M%S')
+
         average_win_rate = asyncio.run(
             gf.orchestrate_matches(
                 mutated_motions=mutated_motions,
@@ -163,7 +165,7 @@ class FightingIceProblem(ElementwiseProblem):
                 experiment_name=self.experiment_name,
                 # Could use this, but we already include the date in the other indicators, so unnecessary
                 # %Y%m%d_%H%M%S
-                experiment_suffix=f'{uuid.uuid4().hex[:6]}_{datetime.now().strftime('%H%M%S')}',
+                experiment_suffix=f'{experiment_suffix_uuid}_{experiment_suffix_time}',
                 engine_multiplier=self.engine_multiplier,
                 game_duration_sec=self.game_duration_sec,
                 visual=self.visual,
