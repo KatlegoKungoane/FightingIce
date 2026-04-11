@@ -89,7 +89,7 @@ from pymoo.parallelization.dask import DaskParallelization
 #     # c.PLAYER_HP = 10000
 #     c.NO_GAMES = 2
 #     c.POLL_INTERVAL_SEC = 0
-#     asyncio.run(run_games(no_engines=3))
+#     asyncio.run(run_games(no_engines=1))
 #     print(f'time: {c.end_time - c.start_time}')
 
 
@@ -116,7 +116,6 @@ if __name__ == '__main__':
         )
 
         start_time = time.perf_counter()
-        c.PLAYER_HP = 1000
         res = minimize(
             problem=problem,
             algorithm=MOEAD(
@@ -131,8 +130,7 @@ if __name__ == '__main__':
                 n_neighbors=2,
                 decomposition=PBI(),
             ),
-            # algorithm=NSGA2(pop_size=3),
-            termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 8),
+            termination=get_termination(c.pymoo.TERMINATION.EVALUATION_LIMIT, 24),
             seed=1,
             save_history=True,
             verbose=True,
@@ -140,7 +138,10 @@ if __name__ == '__main__':
 
         client.close()
 
-        f.consolidate_data(problem.experiment_name)
+        f.consolidate_data(
+            problem.experiment_name,
+            exclude_list=[c.LOGS.POINT],
+        )
 
         end_time = time.perf_counter()
         print(f'time: {end_time - start_time}')

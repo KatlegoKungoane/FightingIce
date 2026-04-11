@@ -117,17 +117,16 @@ async def orchestrate_matches(
     mutated_motions: list[pandas.DataFrame],
     no_matches: int,
     experiment_name: str,
-    iteration_count: int,
+    experiment_suffix: str,
     engine_multiplier: int,
     game_duration_sec: int = 60,
     visual: bool = False,
 ) -> float:
-    # c.PLAYER_HP = 10000
     c.NO_GAMES = no_matches
     c.POLL_INTERVAL_SEC = 0
     c.GAME_DURATION_SEC = game_duration_sec
 
-    experiment_name = f'{experiment_name}_iter_{iteration_count}'
+    experiment_name = f'{experiment_name}_iter_{experiment_suffix}'
 
     custom_motion_paths: list[str] = [
         os.path.join(

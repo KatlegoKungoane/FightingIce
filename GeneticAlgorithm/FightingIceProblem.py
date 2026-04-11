@@ -8,6 +8,8 @@ import pathlib
 import re
 from pymoo.parallelization.dask import DaskParallelization
 from pymoo.core.problem import LoopedElementwiseEvaluation
+import uuid
+from datetime import datetime
 
 import constants as c
 from MotionClasses.MotionHeaders import MotionHeaders as headers
@@ -108,8 +110,6 @@ class FightingIceProblem(ElementwiseProblem):
             elementwise_runner=elementwise_runner,
         )
 
-        self.current_eval: int = 0
-
     def _evaluate(
         self,
         x: np.ndarray,
@@ -161,7 +161,9 @@ class FightingIceProblem(ElementwiseProblem):
                 mutated_motions=mutated_motions,
                 no_matches=self.no_matches,
                 experiment_name=self.experiment_name,
-                iteration_count=self.current_eval,
+                # Could use this, but we already include the date in the other indicators, so unnecessary
+                # %Y%m%d_%H%M%S
+                experiment_suffix=f'{uuid.uuid4().hex[:6]}_{datetime.now().strftime('%H%M%S')}',
                 engine_multiplier=self.engine_multiplier,
                 game_duration_sec=self.game_duration_sec,
                 visual=self.visual,
@@ -174,4 +176,3 @@ class FightingIceProblem(ElementwiseProblem):
         # out['F'] = np.array([-uniqueness_reward, 0], dtype=np.float64)
         # out['G'] = np.array([uniqueness_reward, competitive_reward], dtype=np.float128)
 
-        self.current_eval += 1

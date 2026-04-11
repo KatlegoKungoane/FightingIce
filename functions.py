@@ -139,7 +139,11 @@ def get_number_from_file_name(file_name: str, string_to_find: str) -> int:
 def consolidate_data(
     experiment_name: str,
     log_list: list[str] | None = None,
+    exclude_list: list[str] | None = None,
 ) -> None:
+    if exclude_list is None:
+        exclude_list = []
+
     # We will first throw an error if you add a folder to the logs that we are not aware of
     directory: pathlib.Path = pathlib.Path('log')
     unknown_directories: list[str] = []
@@ -161,6 +165,9 @@ def consolidate_data(
             )
 
     for log_group_name in log_list:
+        if log_group_name in exclude_list:
+            continue
+
         log_group: pathlib.Path = directory.joinpath(log_group_name)
         # We will first check if it is already in a folder
 
@@ -260,7 +267,8 @@ def kill_process(process: asyncio.subprocess.Process) -> None:
             subprocess.run(
                 ['taskkill', '/F', '/T', '/PID', str(process.pid)],
                 capture_output=True,
-                check=True,
+                # check=True,
+                check=False,
             )
         # Linux/Mac
         else:
@@ -396,6 +404,7 @@ async def orchestrate_matches(
 
     for index in range(no_engines):
         port: int | None = f.get_port_number_from_engine_logs(experiment_name, simulators[index].pid)
+        print(f"PID: {simulators[index].pid}, PORT: {port}")
 
         if port is None:
             raise RuntimeError('FAILED TO GET PORT NUMBER FROM FILE, ABORT ALL')
