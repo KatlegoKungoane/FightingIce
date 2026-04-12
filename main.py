@@ -41,6 +41,9 @@ from pymoo.termination import get_termination
 from pymoo.util.ref_dirs import get_reference_directions
 from pymoo.decomposition.pbi import PBI
 from pymoo.parallelization.dask import DaskParallelization
+from pymoo.operators.sampling.rnd import IntegerRandomSampling
+from pymoo.operators.crossover.sbx import SBX
+from pymoo.operators.mutation.pm import PolynomialMutation
 
 
 # async def run_games(no_engines: int):
@@ -99,15 +102,25 @@ from pymoo.parallelization.dask import DaskParallelization
 
 if __name__ == '__main__':
     scheduler_address = os.environ.get('DASK_SCHEDULER_ADDRESS')
-    client = Client(scheduler_address) if scheduler_address else Client(n_workers=20, threads_per_worker=2)
+    client = (
+        Client(scheduler_address)  #
+        if scheduler_address
+        else Client(
+            n_workers=2,
+            threads_per_worker=7,
+            # To match cores with cluster count
+            resources={'cores': 15},
+        )
+    )
 
     print(f'Dask Dashboard available at: {client.dashboard_link}')
 
     try:
-        runner = DaskParallelization(client)
+        # runner = DaskParallelization(client)
 
         problem = FightingIceProblem(
             experiment_name='dask_tests',
+            dask_client=client,
             engine_multiplier=2,
             no_matches=1,
             game_duration_sec=60,
@@ -124,19 +137,20 @@ if __name__ == '__main__':
                 ref_dirs=get_reference_directions(
                     c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
                     n_dim=2,
-                    n_partitions=19,
+                    n_partitions=4,
                 ),
                 # Magic number is 20
-                n_neighbors=10,
+                n_neighbors=3,
                 decomposition=PBI(),
+                sampling=IntegerRandomSampling(),
+                crossover=SBX(prob=1.0, eta=20, vtype=int),
+                mutation=PolynomialMutation(prob=1.0, eta=20, vtype=int),
             ),
-            termination=get_termination(c.pymoo.TERMINATION.GENERATION_LIMIT, 5),
+            termination=get_termination(c.pymoo.TERMINATION.GENERATION_LIMIT, 3),
             seed=1,
             save_history=True,
             verbose=True,
         )
-
-        client.close()
 
         f.consolidate_data(
             problem.experiment_name,

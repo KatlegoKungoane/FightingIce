@@ -6,13 +6,19 @@ anyio
 argon2-cffi
 argon2-cffi-bindings
 arrow
+arviz
+arviz-base
+arviz-plots
+arviz-stats
 asttokens
 async-lru
 attrs
 autograd
 babel
+bask
 beautifulsoup4
 bleach
+bokeh
 certifi
 cffi
 charset-normalizer
@@ -30,6 +36,7 @@ defusedxml
 Deprecated
 dill
 distributed
+emcee
 executing
 fastjsonschema
 fonttools
@@ -51,6 +58,7 @@ ipywidgets
 isoduration
 jedi
 Jinja2
+joblib
 json5
 jsonpointer
 jsonschema
@@ -77,6 +85,7 @@ matplotlib-inline
 mistune
 moocore
 msgpack
+narwhals
 nbclient
 nbconvert
 nbformat
@@ -99,6 +108,7 @@ protobuf
 psutil
 pure_eval
 py4j
+pyaml
 pycparser
 pyftg==2.3.0
 Pygments
@@ -115,6 +125,8 @@ rfc3986-validator
 rfc3987-syntax
 rpds-py
 ruff
+scikit-learn
+scikit-optimize
 scipy
 seaborn
 Send2Trash
@@ -125,9 +137,11 @@ soupsieve
 stack-data
 tblib
 terminado
+threadpoolctl
 tinycss2
 toolz
 tornado
+tqdm
 traitlets
 typing_extensions
 tzdata
@@ -139,4 +153,7 @@ webencodings
 websocket-client
 widgetsnbextension
 wrapt
+xarray
+xarray-einstats
+xyzservices
 zict

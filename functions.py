@@ -312,6 +312,7 @@ async def process_simulator_logs(
 
         if any(err in line for err in ['Exception', 'Error', 'SEVERE']):
             print(f'!!! CRITICAL ERROR ON PROCESS {process_id} !!!\n{line}')
+            await log_file.flush()
             kill_process(subprocess)
             break
 

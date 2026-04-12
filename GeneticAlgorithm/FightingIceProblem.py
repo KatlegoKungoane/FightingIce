@@ -5,8 +5,10 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from pymoo.core.variable import Integer
+from distributed import Client, LocalCluster
 import numpy as np
-from pymoo.core.problem import ElementwiseProblem, LoopedElementwiseEvaluation
+from pymoo.core.problem import Problem, LoopedElementwiseEvaluation
 from pymoo.parallelization.dask import DaskParallelization
 
 import constants as c
@@ -34,16 +36,93 @@ from MotionClasses.MotionNames import MotionNames as motion_names
 """
 
 
-class FightingIceProblem(ElementwiseProblem):
+class IndividualSettings:
+    def __init__(
+        self,
+        motion_coordinates: np.ndarray,
+        no_matches: int,
+        experiment_name: str,
+        engine_multiplier: int,
+        game_duration_sec: int,
+        visual: bool,
+    ):
+        self.motion_coordinates = motion_coordinates
+        self.no_matches = no_matches
+        self.experiment_name = experiment_name
+        self.engine_multiplier = engine_multiplier
+        self.game_duration_sec = game_duration_sec
+        self.visual = visual
+
+
+def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> list[float, float]:
+    # TODO: FIX ME PROPERLY
+    x = x.astype(int)
+
+    mutated_motions = [motion.copy() for motion in motion_editor.DEFAULT_MOTION_LIST]
+
+    adjustments = x.reshape(3, -1).copy()
+
+    # TODO: Right now, we are going to use a slow loop version, if you want this to work, we need to ensure that the dtypes we are adjusting are all the same.
+    # I.E., numbers, strings, and booleans must be treated differently.
+
+    for index, character_adjustment in enumerate(adjustments):
+        rows = settings.motion_coordinates[:, 0]
+        cols = settings.motion_coordinates[:, 1]
+        for row, col, value in zip(rows, cols, character_adjustment, strict=True):
+            mutated_motions[index].iloc[row, col] = value
+
+        # print(mutated_motions[index].loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
+        # selected_motion = mutated_motions[index]
+        # rows = self.motion_coordinates[:, 0]
+        # cols = self.motion_coordinates[:, 1]
+        # selected_motion.values[rows, cols] = character_adjustment
+        # print(selected_motion.loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
+
+    # with f.full_view():
+    # for mutated_motion in mutated_motions:
+    # print(mutated_motion.loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
+    # print(mutated_motion)
+
+    # TODO: Normalize uniqueness and competitive balance
+    numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
+    uniqueness_reward = gf.constraint_novelty_search(
+        numerical_differences,
+        None,
+        None,
+    )
+
+    experiment_suffix_uuid: str = uuid.uuid4().hex[:6]
+    experiment_suffix_time: str = datetime.now().strftime('%H%M%S')
+
+    average_win_rate = asyncio.run(
+        gf.orchestrate_matches(
+            mutated_motions=mutated_motions,
+            no_matches=settings.no_matches,
+            experiment_name=settings.experiment_name,
+            # Could use this, but we already include the date in the other indicators, so unnecessary
+            # %Y%m%d_%H%M%S
+            experiment_suffix=f'{experiment_suffix_time}_{experiment_suffix_uuid}',
+            engine_multiplier=settings.engine_multiplier,
+            game_duration_sec=settings.game_duration_sec,
+            visual=settings.visual,
+        )
+    )
+
+    competitive_balance: float = f.transform_win_rate(average_win_rate)
+
+    return np.array([0, -competitive_balance], dtype=np.float64)
+
+
+class FightingIceProblem(Problem):
     def __init__(
         self,
         experiment_name: str,
+        dask_client: Client,
         no_matches: int = 1,
         engine_multiplier: int = 1,
         game_duration_sec: int = 60,
         elementwise: bool = True,
         visual: bool = False,
-        elementwise_runner: DaskParallelization | None = None,
         **kwargs: Any,
     ) -> None:
 
@@ -52,6 +131,7 @@ class FightingIceProblem(ElementwiseProblem):
         self.no_matches = no_matches
         self.engine_multiplier = engine_multiplier
         self.game_duration_sec = game_duration_sec
+        self.client = dask_client
 
         # Going to adjust the experiment name if its already in use
         pathlib.Path(c.CUSTOM_MOTION_PATH).mkdir(parents=True, exist_ok=True)
@@ -94,87 +174,56 @@ class FightingIceProblem(ElementwiseProblem):
                 xl[character_index * (gene_count // 3) + index] = headers.MOTION_LIMITS[header]['min']
                 xu[character_index * (gene_count // 3) + index] = headers.MOTION_LIMITS[header]['max']
 
-        if elementwise_runner is None:
-            elementwise_runner = LoopedElementwiseEvaluation()
-
+        prob_vars: dict[str, int] = {f"x{i}": Integer(bounds=(xl[i], xu[i])) for i in range(gene_count)}
         super().__init__(
-            elementwise,
+            elementwise=False,
             **kwargs,
-            n_var=gene_count,
+            # n_var=gene_count,
             n_obj=2,
             # n_ieq_constr=gene_count,
             n_ieq_constr=0,
             xl=xl,
             xu=xu,
-            elementwise_runner=elementwise_runner,
+            vtype=int,
+            vars=prob_vars,
+            # elementwise_runner=elementwise_runner,
         )
 
     def _evaluate(
         self,
-        x: np.ndarray,
+        X: np.ndarray,
         out: dict[str, np.ndarray],
         *args: Any,
         **kwargs: Any,
     ) -> None:
-        # Get uniqueness reward
-        # Get competitive balance reward
-
-        # TODO: FIX ME PROPERLY
-        x = x.astype(int)
-
-        mutated_motions = [motion.copy() for motion in motion_editor.DEFAULT_MOTION_LIST]
-
-        adjustments = x.reshape(3, -1).copy()
-
-        # TODO: Right now, we are going to use a slow loop version, if you want this to work, we need to ensure that the dtypes we are adjusting are all the same.
-        # I.E., numbers, strings, and booleans must be treated differently.
-
-        for index, character_adjustment in enumerate(adjustments):
-            rows = self.motion_coordinates[:, 0]
-            cols = self.motion_coordinates[:, 1]
-            for row, col, value in zip(rows, cols, character_adjustment, strict=True):
-                mutated_motions[index].iloc[row, col] = value
-
-            # print(mutated_motions[index].loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
-            # selected_motion = mutated_motions[index]
-            # rows = self.motion_coordinates[:, 0]
-            # cols = self.motion_coordinates[:, 1]
-            # selected_motion.values[rows, cols] = character_adjustment
-            # print(selected_motion.loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
-
-        # with f.full_view():
-        # for mutated_motion in mutated_motions:
-        # print(mutated_motion.loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
-        # print(mutated_motion)
-
-        # TODO: Normalize uniqueness and competitive balance
-        numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
-        uniqueness_reward = gf.constraint_novelty_search(
-            numerical_differences,
-            None,
-            None,
+        eval_settings = IndividualSettings(
+            motion_coordinates=self.motion_coordinates,
+            no_matches=self.no_matches,
+            experiment_name=self.experiment_name,
+            engine_multiplier=self.engine_multiplier,
+            game_duration_sec=self.game_duration_sec,
+            visual=self.visual,
         )
 
-        experiment_suffix_uuid: str = uuid.uuid4().hex[:6]
-        experiment_suffix_time: str = datetime.now().strftime('%H%M%S')
-
-        average_win_rate = asyncio.run(
-            gf.orchestrate_matches(
-                mutated_motions=mutated_motions,
-                no_matches=self.no_matches,
-                experiment_name=self.experiment_name,
-                # Could use this, but we already include the date in the other indicators, so unnecessary
-                # %Y%m%d_%H%M%S
-                experiment_suffix=f'{experiment_suffix_time}_{experiment_suffix_uuid}',
-                engine_multiplier=self.engine_multiplier,
-                game_duration_sec=self.game_duration_sec,
-                visual=self.visual,
-            )
+        futures = self.client.map(
+            evaluate_individual,
+            X,
+            settings=eval_settings,
+            resources={'cores': self.engine_multiplier * 3}
         )
 
-        competitive_balance: float = f.transform_win_rate(average_win_rate)
+        results = self.client.gather(futures)
 
-        out['F'] = np.array([0, -competitive_balance], dtype=np.float64)
-        # out['F'] = np.array([-uniqueness_reward, 0], dtype=np.float64)
-        # out['G'] = np.array([uniqueness_reward, competitive_reward], dtype=np.float128)
+        out['F'] = np.array(results, dtype=np.float64)
 
+    # These 2 are for when pymoo makes a copy of this object.
+    # It will try to copy the client, but thats an object that can't be copied.
+    def __getstate__(self) -> dict:
+        state = self.__dict__.copy()
+        if 'client' in state:
+            del state['client']
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self.client = None
