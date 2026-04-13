@@ -156,7 +156,7 @@ if __name__ == '__main__':
                 crossover=SBX(prob=1.0, eta=20, vtype=int),
                 mutation=PolynomialMutation(prob=1.0, eta=20, vtype=int),
             ),
-            termination=get_termination(c.pymoo.TERMINATION.GENERATION_LIMIT, 3),
+            termination=get_termination(c.pymoo.TERMINATION.GENERATION_LIMIT, 1),
             seed=1,
             save_history=True,
             verbose=True,
