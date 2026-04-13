@@ -31,6 +31,7 @@ import os
 import numpy as np
 from distributed import Client, LocalCluster
 import sys
+from dask_jobqueue import SLURMCluster
 
 import MotionClasses.MotionEditor as me
 from pymoo.algorithms.moo.moead import MOEAD
@@ -101,17 +102,30 @@ from pymoo.operators.mutation.pm import PolynomialMutation
 # NSGA - pop = 3 - time = 236.92388630000642
 
 if __name__ == '__main__':
-    scheduler_address = os.environ.get('DASK_SCHEDULER_ADDRESS')
-    client = (
-        Client(scheduler_address)  #
-        if scheduler_address
-        else Client(
-            n_workers=2,
-            threads_per_worker=7,
-            # To match cores with cluster count
-            resources={'cores': 15},
+    f.arg_parser()
+
+    if os.environ.get('SLURM_JOB_ID'):
+        print("--- Running with SLURMCluster ---")
+        print(f"CORES: {c.CORES}\nNODES: {c.NODES}\nPARTITION: {c.PARTITION}")
+        core_count_str: str = f'cores={c.CORES}'
+
+        cluster = SLURMCluster(
+            queue=c.PARTITION,
+            cores=c.CORES,
+            extra=[f'--resources {c.CORES}']
         )
-    )
+        cluster.scale(jobs=c.NODES)
+    else:
+        print("--- Running with LocalCluster ---")
+
+        core_count: int = c.CORES // c.NODES
+        cluster = LocalCluster(
+            n_workers=c.NODES,
+            threads_per_worker=core_count,
+            resources={'cores': core_count}
+        )
+
+    client = Client(cluster)
 
     print(f'Dask Dashboard available at: {client.dashboard_link}')
 

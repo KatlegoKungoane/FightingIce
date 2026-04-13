@@ -76,6 +76,27 @@ def arg_parser() -> str:
         default='True',
         help='Flag to ascertain if log files should be zipped or not',
     )
+    parser.add_argument(
+        '-c',
+        '--cores',
+        type=int,
+        default=-1,
+        help='Multiprocessing: Flag for core count per node',
+    )
+    parser.add_argument(
+        '-n',
+        '--nodes',
+        type=int,
+        default=-1,
+        help='Multiprocessing: Flag for node count',
+    )
+    parser.add_argument(
+        '-p',
+        '--partition',
+        type=str,
+        default='regular',
+        help='Multiprocessing: Nma of partition',
+    )
 
     # Booleans (Flags)
     # action="store_true" means if the flag is present, it's True. If not, it's False.
@@ -117,6 +138,21 @@ def arg_parser() -> str:
         c.ZIP_FILES  #
         if args.zip_files == 'True'
         else False
+    )
+    c.NODES = (
+        c.NODES  #
+        if args.nodes == -1
+        else args.nodes
+    )
+    c.CORES = (
+        c.CORES  #
+        if args.cores == -1
+        else args.cores
+    )
+    c.PARTITION = (
+        c.PARTITION  #
+        if args.partition == 'regular'
+        else args.partition
     )
 
     return args.game_name

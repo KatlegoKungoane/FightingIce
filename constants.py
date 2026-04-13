@@ -11,6 +11,10 @@ GAME_DURATION_SEC: int = 60
 EXPERIMENT_NAME: str = 'adhoc'
 ZIP_FILES: bool = True
 
+NODES: int = 1
+CORES: int = 15
+PARTITION: str = 'regular'
+
 DEFAULT_MOTIONS_PATH: str = os.path.join('data', 'characters')
 MOTIONS_FILE_NAME: str = 'Motion.csv'
 CUSTOM_MOTION_PATH: str = 'custom_motions'

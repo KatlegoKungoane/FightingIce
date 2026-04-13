@@ -9,6 +9,7 @@
 - Chat said that the flop is that I do too many disk writes. I need to save things to a tmp folder then move it over when I am done. This is the disk on the node itself, and information doesn't have to travel over the network.
 - Write small experiment to test the time difference between writing to tmp vs writing over cluster network
 - Look into using a Vectorized evaluation
+- Upgrade python on cluster bro
 
 
 # Note list
@@ -19,3 +20,5 @@ $$N = \binom{H + m - 1}{m - 1}$$
 - We got 20 cores on my BBD laptop (might change when I move jobs)
 - The harmonic mean calculation is:
 $$\frac{n}{x_1^{-1}+\dots+x_n^{-1}} \quad s.t: 0\leq x_i \leq 1$$
+- The function for the competitive balance is:
+$$R(p)=e^{-\frac{(0.5-p)^2}{2\sigma^2}}$$
