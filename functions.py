@@ -681,11 +681,11 @@ def calculate_harmonic_mean(
     return values.shape[0] / (1 / ((values + div_zero_slack) / normalization_value)).sum()
 
 
-def transform_win_rate_array(win_rates: np.ndarray, sigma: float = 0.08) -> np.ndarray:
+def transform_win_rate_array(win_rates: np.ndarray, sigma: float = 0.20) -> np.ndarray:
     return np.exp(-(np.pow(0.5 - win_rates, 2)) / (2 * pow(sigma, 2)))
 
 
-def transform_win_rate(win_rate: float, sigma: float = 0.08) -> np.ndarray:
+def transform_win_rate(win_rate: float, sigma: float = 0.20) -> np.ndarray:
     return math.exp(-(pow(0.5 - win_rate, 2)) / (2 * pow(sigma, 2)))
 
 
