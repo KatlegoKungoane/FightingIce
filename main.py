@@ -121,7 +121,7 @@ if __name__ == '__main__':
             resources={'cores': core_count}
         )
 
-    client = Client(cluster)
+        client = Client(cluster)
 
     print(f'Dask Dashboard available at: {client.dashboard_link}')
 
