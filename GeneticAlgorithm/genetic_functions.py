@@ -5,6 +5,8 @@ import os
 from itertools import combinations
 import pathlib
 from datetime import datetime
+import time
+import asyncio
 
 import constants as c
 import functions as f
@@ -108,12 +110,25 @@ def constraint_novelty_search(
     ) / 3
 
 
+async def wait_for_point_file(experiment_name: str, timeout: int = 10) -> pathlib.Path | None:
+    point_path: pathlib.Path = pathlib.Path(os.path.join('log', 'point'))
+
+    start_poll = time.time()
+
+    while time.time() - start_poll < timeout:
+        point_csv: pathlib.Path | None = next(point_path.glob(f'{experiment_name}*.csv'), None)
+        if point_csv is not None:
+            return point_csv
+
+        await asyncio.sleep(1)
+
+    return None
+
+
 """
 * TODO: Think about scaling at a later stage
 * For now, we will have 3 engines to handle the different matches against the MCTS agents
 """
-
-
 async def orchestrate_matches(
     mutated_motions: list[pandas.DataFrame],
     no_matches: int,
@@ -214,15 +229,7 @@ async def orchestrate_matches(
     #   x % 3 == 1 -> zen vd lud
     #   x % 3 == 2 -> garnet vd lud
 
-    point_path: pathlib.Path = pathlib.Path(os.path.join('log', 'point'))
-    point_path_glob = point_path.glob(f'{experiment_name}*.csv')
-    folder_content_list = []
-    for glob_result in point_path_glob:
-        folder_content_list.append(glob_result.name)
-    folder_content: str = ", ".join(folder_content_list)
-    rn_str = datetime.now().strftime('%H:%M:%S')
-    print(f'Trying to find |{experiment_name}| in {folder_content} at {rn_str}')
-    point_csv: pathlib.Path | None = next(point_path.glob(f'{experiment_name}*.csv'), None)
+    point_csv: pathlib.Path | None = await wait_for_point_file(experiment_name)
     if point_csv is None:
         raise FileExistsError(f'Glob failed to fined experiment | {point_csv} | in folder')
     if not point_csv.exists():
