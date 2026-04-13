@@ -173,4 +173,5 @@ if __name__ == '__main__':
         with open('res.pkl', 'wb') as res_file:
             dill.dump(res, res_file)
     finally:
+        client.shutdown()
         client.close()

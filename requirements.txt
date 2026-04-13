@@ -1,6 +1,9 @@
 # Remember to delete pywinpty
 about-time
 aiofiles
+aiohappyeyeballs
+aiohttp
+aiosignal
 alive-progress
 anyio
 argon2-cffi
@@ -30,7 +33,7 @@ comm
 contourpy
 cycler
 dask
-dask_jobqueue
+dask-jobqueue
 debugpy
 decorator
 defusedxml
@@ -42,6 +45,7 @@ executing
 fastjsonschema
 fonttools
 fqdn
+frozenlist
 fsspec
 graphemeu
 grpcio
@@ -71,6 +75,7 @@ jupyter-lsp
 jupyter_client
 jupyter_core
 jupyter_server
+jupyter_server_proxy
 jupyter_server_terminals
 jupyterlab
 jupyterlab-vim
@@ -86,6 +91,7 @@ matplotlib-inline
 mistune
 moocore
 msgpack
+multidict
 narwhals
 nbclient
 nbconvert
@@ -105,6 +111,7 @@ platformdirs
 port-for
 prometheus_client
 prompt_toolkit
+propcache
 protobuf
 psutil
 pure_eval
@@ -132,6 +139,7 @@ scipy
 seaborn
 Send2Trash
 setuptools
+simpervisor
 six
 sortedcontainers
 soupsieve
@@ -157,4 +165,5 @@ wrapt
 xarray
 xarray-einstats
 xyzservices
+yarl
 zict
