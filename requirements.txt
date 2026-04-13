@@ -30,6 +30,7 @@ comm
 contourpy
 cycler
 dask
+dask_jobqueue
 debugpy
 decorator
 defusedxml
