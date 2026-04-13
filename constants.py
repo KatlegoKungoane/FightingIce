@@ -13,6 +13,7 @@ ZIP_FILES: bool = True
 
 NODES: int = 1
 CORES: int = 15
+EST_RAM_PER_ENGINE_GB: int = 2
 PARTITION: str = 'regular'
 
 DEFAULT_MOTIONS_PATH: str = os.path.join('data', 'characters')

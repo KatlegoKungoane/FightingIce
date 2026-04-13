@@ -112,6 +112,7 @@ if __name__ == '__main__':
         cluster = SLURMCluster(
             queue=c.PARTITION,
             cores=c.CORES,
+            memory=f'{c.CORES * c.EST_RAM_PER_ENGINE_GB}GB',
             extra=[f'--resources {c.CORES}']
         )
         cluster.scale(jobs=c.NODES)
