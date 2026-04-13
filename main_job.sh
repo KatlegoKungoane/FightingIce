@@ -9,9 +9,8 @@
 
 mkdir -p dask_logs
 
-# Testing if these are even needed, looks like we needed the init stuff
-# PROJECT_ROOT="/home-mscluster/kkungoane/dare-fighting-ice/FightingIce"
-# export PYTHONPATH=$PYTHONPATH:$PROJECT_ROOT
+PROJECT_ROOT="/home-mscluster/kkungoane/dare-fighting-ice/FightingIce"
+export PYTHONPATH=$PYTHONPATH:$PROJECT_ROOT
 
 NODES=3
 CORES=15
