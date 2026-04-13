@@ -104,18 +104,13 @@ from pymoo.operators.mutation.pm import PolynomialMutation
 if __name__ == '__main__':
     f.arg_parser()
 
-    if os.environ.get('SLURM_JOB_ID'):
-        print("--- Running with SLURMCluster ---")
-        print(f"CORES: {c.CORES}\nNODES: {c.NODES}\nPARTITION: {c.PARTITION}")
-        core_count_str: str = f'cores={c.CORES}'
+    if c.SCHEDULER_FILE is not None:
+        print("--- Running with Scheduler File ---")
+        client = Client(scheduler_file=c.SCHEDULER_FILE)
 
-        cluster = SLURMCluster(
-            queue=c.PARTITION,
-            cores=c.CORES,
-            memory=f'{c.CORES * c.EST_RAM_PER_ENGINE_GB}GB',
-            extra=[f'--resources {c.CORES}']
-        )
-        cluster.scale(jobs=c.NODES)
+        print(f"Waiting for workers to report for duty...")
+        client.wait_for_workers(n_workers=c.NODES, timeout=30)
+        print("Cluster is fully populated. Starting Evolution.")
     else:
         print("--- Running with LocalCluster ---")
 

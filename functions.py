@@ -95,7 +95,14 @@ def arg_parser() -> str:
         '--partition',
         type=str,
         default='regular',
-        help='Multiprocessing: Nma of partition',
+        help='Multiprocessing: Name of partition',
+    )
+    parser.add_argument(
+        '-sf',
+        '--scheduler_file',
+        type=str,
+        default=None,
+        help='Multiprocessing: Config file for scheduler',
     )
 
     # Booleans (Flags)
@@ -153,6 +160,11 @@ def arg_parser() -> str:
         c.PARTITION  #
         if args.partition == 'regular'
         else args.partition
+    )
+    c.SCHEDULER_FILE = (
+        c.SCHEDULER_FILE  #
+        if args.scheduler_file == 'None' or args.scheduler_file is None
+        else args.scheduler_file
     )
 
     return args.game_name

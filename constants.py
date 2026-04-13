@@ -12,9 +12,11 @@ EXPERIMENT_NAME: str = 'adhoc'
 ZIP_FILES: bool = True
 
 NODES: int = 1
+# We actually have 20, but wanna say 15 to align to cluster
 CORES: int = 15
 EST_RAM_PER_ENGINE_GB: int = 2
 PARTITION: str = 'regular'
+SCHEDULER_FILE: str | None = None
 
 DEFAULT_MOTIONS_PATH: str = os.path.join('data', 'characters')
 MOTIONS_FILE_NAME: str = 'Motion.csv'
