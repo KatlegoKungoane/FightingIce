@@ -34,7 +34,6 @@ srun --quiet \
     conda run -n fightingIceEnv_stable dask-worker \
     --scheduler-file $DASK_FILE \
     --nthreads $CORES \
-    --resources "cores=$CORES" \
-    > dask_logs/worker_$SLURM_JOB_ID 2>&1 &
+    --resources "cores=$CORES" &
 
 conda run -n fightingIceEnv_stable python main.py -sf $DASK_FILE -n $NODES -c $CORES
