@@ -114,7 +114,9 @@ async def wait_for_point_file(experiment_name: str, timeout: int = 10) -> pathli
     point_path: pathlib.Path = pathlib.Path(os.path.join('log', 'point'))
 
     start_poll = time.time()
+    time_str = datetime.now().strftime('%H:%M:%S')
 
+    print(f'looking for {experiment_name} at {time_str}')
     while time.time() - start_poll < timeout:
         point_csv: pathlib.Path | None = next(point_path.glob(f'{experiment_name}*.csv'), None)
         if point_csv is not None:
@@ -122,6 +124,8 @@ async def wait_for_point_file(experiment_name: str, timeout: int = 10) -> pathli
 
         await asyncio.sleep(1)
 
+    time_str = datetime.now().strftime('%H:%M:%S')
+    print(f'Failed at {time_str}')
     return None
 
 
