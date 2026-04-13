@@ -19,7 +19,7 @@ DASK_FILE="/home-mscluster/kkungoane/dare-fighting-ice/FightingIce/dask_schedule
 conda run -n fightingIceEnv_stable dask scheduler \
         --scheduler-file $DASK_FILE \
         --port 0 \
-        > dask_logs/scheduler_$SLURM_JOBIID 2>&1 &
+        > dask_logs/scheduler_$SLURM_JOB_IID 2>&1 &
 echo "Waiting for scheduler to write $DASK_FILE..."
 until [ -f "$DASK_FILE" ]; do
      sleep 0.5
