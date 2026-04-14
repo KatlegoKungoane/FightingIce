@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -p bigbatch
-#SBATCH -c 20
+#SBATCH -c 28
 #SBATCH -N 20
 #SBATCH -J ga_r
 #SBATCH --ntasks-per-node=1
@@ -14,7 +14,7 @@ PROJECT_ROOT="/home-mscluster/kkungoane/dare-fighting-ice/FightingIce"
 export PYTHONPATH=$PYTHONPATH:$PROJECT_ROOT
 
 NODES=20
-CORES=20
+CORES=28
 DASK_FILE="/home-mscluster/kkungoane/dare-fighting-ice/FightingIce/dask_schedulers/dask_${SLURM_JOB_ID}.json"
 
 conda run -n fightingIceEnv_stable dask scheduler \

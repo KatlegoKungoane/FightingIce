@@ -129,10 +129,10 @@ if __name__ == '__main__':
         # runner = DaskParallelization(client)
 
         problem = FightingIceProblem(
-            experiment_name='long_exp_02',
+            experiment_name='mixed_exp_02',
             dask_client=client,
-            engine_multiplier=3,
-            no_matches=1,
+            engine_multiplier=4,
+            no_matches=2,
             game_duration_sec=60,
             visual=False,
             # elementwise_runner=runner,
@@ -147,10 +147,10 @@ if __name__ == '__main__':
                 ref_dirs=get_reference_directions(
                     c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
                     n_dim=2,
-                    n_partitions=19,
+                    n_partitions=39,
                 ),
                 # Magic number is 20
-                n_neighbors=10,
+                n_neighbors=20,
                 decomposition=PBI(),
                 sampling=IntegerRandomSampling(),
                 crossover=SBX(prob=1.0, eta=20, vtype=int),
