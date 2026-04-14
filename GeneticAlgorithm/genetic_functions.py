@@ -274,3 +274,19 @@ async def orchestrate_matches(
         f.calculate_harmonic_mean(values=win_rates),
         1,
     )
+
+def gene_to_motions(gene: np.ndarray, motion_coordinates: np.ndarray) -> list[pandas.DataFrame]:
+    mutated_motions = [motion.copy() for motion in me.DEFAULT_MOTION_LIST]
+
+    adjustments = gene.reshape(3, -1).copy()
+
+    # TODO: Right now, we are going to use a slow loop version, if you want this to work, we need to ensure that the dtypes we are adjusting are all the same.
+    # I.E., numbers, strings, and booleans must be treated differently.
+
+    for index, character_adjustment in enumerate(adjustments):
+        rows = motion_coordinates[:, 0]
+        cols = motion_coordinates[:, 1]
+        for row, col, value in zip(rows, cols, character_adjustment, strict=True):
+            mutated_motions[index].iloc[row, col] = value
+
+    return mutated_motions

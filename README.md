@@ -10,6 +10,7 @@
 - Write small experiment to test the time difference between writing to tmp vs writing over cluster network
 - Look into using a Vectorized evaluation
 - Upgrade python on cluster bro
+- When you look at solution replay, there is a lot of variance. We need to do experiments to find the optimal number of games to play to reduce that variance!!!
 
 
 # Note list

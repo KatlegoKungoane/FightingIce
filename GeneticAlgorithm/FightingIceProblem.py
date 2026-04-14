@@ -55,35 +55,8 @@ class IndividualSettings:
 
 
 def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> list[float, float]:
-    # TODO: FIX ME PROPERLY
-    x = x.astype(int)
+    mutated_motions = gf.gene_to_motions(gene=x, motion_coordinates=settings.motion_coordinates)
 
-    mutated_motions = [motion.copy() for motion in motion_editor.DEFAULT_MOTION_LIST]
-
-    adjustments = x.reshape(3, -1).copy()
-
-    # TODO: Right now, we are going to use a slow loop version, if you want this to work, we need to ensure that the dtypes we are adjusting are all the same.
-    # I.E., numbers, strings, and booleans must be treated differently.
-
-    for index, character_adjustment in enumerate(adjustments):
-        rows = settings.motion_coordinates[:, 0]
-        cols = settings.motion_coordinates[:, 1]
-        for row, col, value in zip(rows, cols, character_adjustment, strict=True):
-            mutated_motions[index].iloc[row, col] = value
-
-        # print(mutated_motions[index].loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
-        # selected_motion = mutated_motions[index]
-        # rows = self.motion_coordinates[:, 0]
-        # cols = self.motion_coordinates[:, 1]
-        # selected_motion.values[rows, cols] = character_adjustment
-        # print(selected_motion.loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
-
-    # with f.full_view():
-    # for mutated_motion in mutated_motions:
-    # print(mutated_motion.loc[:, [headers.ATTACK_HIT_DAMAGE, headers.ATTACK_HIT_ADD_ENERGY]])
-    # print(mutated_motion)
-
-    # TODO: Normalize uniqueness and competitive balance
     numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
     uniqueness_reward = gf.constraint_novelty_search(
         numerical_differences,
