@@ -114,6 +114,5 @@ def generate_data(match_counts: np.ndarray, repeat_count: int = 10) -> None:
 
 
 if __name__ == '__main__':
-    # generate_data(match_counts=np.array([1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50]), repeat_count=10)
-    generate_data(match_counts=np.array([1, 2]), repeat_count=10)
+    generate_data(match_counts=np.array([1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50]), repeat_count=10)
     # print(replay_single_mutation(gene=np.array([140, 107, 144, 224, 174, 14]), match_per_agent=8))
