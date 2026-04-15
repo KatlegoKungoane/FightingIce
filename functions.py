@@ -104,6 +104,13 @@ def arg_parser() -> str:
         default=None,
         help='Multiprocessing: Config file for scheduler',
     )
+    parser.add_argument(
+        '-bp',
+        '--base_path',
+        type=str,
+        default=None,
+        help='Multiprocessing: Base path for absolute routing',
+    )
 
     # Booleans (Flags)
     # action="store_true" means if the flag is present, it's True. If not, it's False.
@@ -165,6 +172,11 @@ def arg_parser() -> str:
         c.SCHEDULER_FILE  #
         if args.scheduler_file == 'None' or args.scheduler_file is None
         else args.scheduler_file
+    )
+    c.BASE_PATH = (
+        c.BASE_PATH  #
+        if args.base_path == 'None' or args.base_path is None
+        else args.base_path
     )
 
     return args.game_name

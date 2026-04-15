@@ -125,15 +125,7 @@ class FightingIceProblem(Problem):
             motion_names.STAND_B: headers.ATTACK_HIT_ADD_ENERGY,
         }
 
-        self.motion_coordinates = np.array(
-            [
-                [
-                    motion_names.MOTION_NAMES.index(motion),
-                    headers.HEADERS.index(header),
-                ]
-                for motion, header in self.motion_adjustments.items()
-            ]
-        )
+        self.motion_coordinates: np.ndarray = gf.get_motion_coordinates(self.motion_adjustments)
 
         # might not be needed
         self.motion_mapper = f.motion_cord_to_index_bulk(self.motion_coordinates)

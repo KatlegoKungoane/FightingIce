@@ -17,6 +17,7 @@ CORES: int = 15
 EST_RAM_PER_ENGINE_GB: int = 2
 PARTITION: str = 'regular'
 SCHEDULER_FILE: str | None = None
+BASE_PATH: str | None = None
 
 DEFAULT_MOTIONS_PATH: str = os.path.join('data', 'characters')
 MOTIONS_FILE_NAME: str = 'Motion.csv'

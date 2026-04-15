@@ -111,7 +111,10 @@ def constraint_novelty_search(
 
 
 async def wait_for_point_file(experiment_name: str, timeout: int = 10) -> pathlib.Path | None:
-    point_path: pathlib.Path = pathlib.Path(os.path.join('log', 'point'))
+    if c.BASE_PATH is not None:
+        point_path: pathlib.Path = pathlib.Path(os.path.join(c.BASE_PATH, 'log', 'point'))
+    else:
+        point_path: pathlib.Path = pathlib.Path(os.path.join('log', 'point'))
 
     start_poll = time.time()
     time_str = datetime.now().strftime('%H:%M:%S')
@@ -290,3 +293,15 @@ def gene_to_motions(gene: np.ndarray, motion_coordinates: np.ndarray) -> list[pa
             mutated_motions[index].iloc[row, col] = value
 
     return mutated_motions
+
+
+def get_motion_coordinates(motion_adjustments: dict[str, str]) -> np.ndarray:
+    return np.array(
+        [
+            [
+                mn.MotionNames.MOTION_NAMES.index(motion),
+                mh.MotionHeaders.HEADERS.index(header),
+            ]
+            for motion, header in motion_adjustments.items()
+        ]
+    )
