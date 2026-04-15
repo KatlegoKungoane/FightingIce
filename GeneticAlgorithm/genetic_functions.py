@@ -318,8 +318,4 @@ def generate_random_gene(motion_adjustments: dict[str, str]) -> np.ndarray:
             size=3,
         ))
 
-    # TODO: This is for debugging, remove this soon
-    g = np.stack(header_limits_container)
-    t = g.T
-    b = t.flatten()
-    return b
+    return np.stack(header_limits_container).T.flatten()
