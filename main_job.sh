@@ -35,7 +35,7 @@ srun --quiet \
     --unbuffered \
     --output=dask_logs/worker_logs_$SLURM_JOB_ID/worker_%j_%t.out \
     --error=dask_logs/worker_logs_$SLURM_JOB_ID/worker_%j_%t.err \
-    conda run -n --no-capture-output fightingIceEnv_stable dask worker \
+    conda run --no-capture-output -n fightingIceEnv_stable dask worker \
     --scheduler-file $DASK_FILE \
     --nthreads $CORES \
     --resources "cores=$CORES" &
