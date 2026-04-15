@@ -6,6 +6,7 @@ log/
 out/
 err/
 dask_logs/
+solution_explorer/logs/*
 ######
 
 # Byte-compiled / optimized / DLL files

@@ -11,6 +11,7 @@
 - Look into using a Vectorized evaluation
 - Upgrade python on cluster bro
 - When you look at solution replay, there is a lot of variance. We need to do experiments to find the optimal number of games to play to reduce that variance!!!
+- I am so interested in jobs. I wanna learn how to create a space where I can submit jobs that require credits, and have cores / nodes just go and pick them up. Sounds so cool.
 
 
 # Note list

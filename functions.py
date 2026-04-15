@@ -24,6 +24,21 @@ from agents.KatKickAi import KatKickAi
 from MotionClasses.MotionEditor import MotionEditor
 
 
+def parse_argument_str(shorthand: str, full_name: str, default: str | None = None, help: str = '') -> str:
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(description='FightingICE Research Runner', add_help=False)
+
+    parser.add_argument(
+        f'-{shorthand}',
+        f'--{full_name}',
+        type=str,
+        default=default,
+        help=help,
+    )
+
+    args, _ = parser.parse_known_args()
+    return getattr(args, full_name)
+
+
 def arg_parser() -> str:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description='FightingICE Research Runner')
 
@@ -317,7 +332,6 @@ def consolidate_data(
                         consolidated_file.write(']')
 
 
-
 def kill_process(process: asyncio.subprocess.Process) -> None:
     if process.returncode is None:
         print(f'Forcefully killing process tree for PID {process.pid}...')
@@ -465,7 +479,7 @@ async def orchestrate_matches(
 
     for index in range(no_engines):
         port: int | None = f.get_port_number_from_engine_logs(experiment_name, simulators[index].pid)
-        print(f"PID: {simulators[index].pid}, PORT: {port}")
+        print(f'PID: {simulators[index].pid}, PORT: {port}')
 
         if port is None:
             raise RuntimeError('FAILED TO GET PORT NUMBER FROM FILE, ABORT ALL')

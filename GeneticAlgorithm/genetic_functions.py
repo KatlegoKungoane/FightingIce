@@ -305,3 +305,21 @@ def get_motion_coordinates(motion_adjustments: dict[str, str]) -> np.ndarray:
             for motion, header in motion_adjustments.items()
         ]
     )
+
+def generate_random_gene(motion_adjustments: dict[str, str]) -> np.ndarray:
+    random_generator: np.random.Generator = np.random.default_rng(seed=1)
+
+    header_limits_container = []
+    for control_header in motion_adjustments.values():
+        header_limits = mh.MotionHeaders.HEADER_LIMITS[control_header]
+        header_limits_container.append(random_generator.integers(
+            low=header_limits['min'],
+            high=header_limits['max'] + 1,
+            size=3,
+        ))
+
+    # TODO: This is for debugging, remove this soon
+    g = np.stack(header_limits_container)
+    t = g.T
+    b = t.flatten()
+    return b

@@ -1,6 +1,8 @@
-from typing import TypedDict
 from enum import Enum
+from typing import TypedDict
+
 import numpy as np
+
 import constants as c
 
 
@@ -157,7 +159,7 @@ class MotionHeaders:
         IMAGE: 'string',
     }
 
-    MOTION_LIMITS: dict[str, RangeLimit | None] = {
+    HEADER_LIMITS: dict[str, RangeLimit | None] = {
         MOTION_NAME: None,
         FRAME_NUMBER: None,
         SPEED_X: {'min': -100, 'max': 100},  # Arbitrary
@@ -194,7 +196,6 @@ class MotionHeaders:
         IMAGE: None,
     }
 
-   
     NUMERICAL_HEADERS: list[str] = []
     STRING_HEADERS: list[str] = []
     BOOLEAN_HEADERS: list[str] = []

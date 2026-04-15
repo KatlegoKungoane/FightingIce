@@ -5,16 +5,14 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from pymoo.core.variable import Integer
-from distributed import Client, LocalCluster
 import numpy as np
-from pymoo.core.problem import Problem, LoopedElementwiseEvaluation
-from pymoo.parallelization.dask import DaskParallelization
+from distributed import Client
+from pymoo.core.problem import Problem
+from pymoo.core.variable import Integer
 
 import constants as c
 import functions as f
 import GeneticAlgorithm.genetic_functions as gf
-import MotionClasses.MotionEditor as motion_editor
 from MotionClasses.MotionHeaders import MotionHeaders as headers
 from MotionClasses.MotionNames import MotionNames as motion_names
 
@@ -136,10 +134,10 @@ class FightingIceProblem(Problem):
 
         for character_index in range(3):
             for index, header in enumerate(self.motion_adjustments.values()):
-                xl[character_index * (gene_count // 3) + index] = headers.MOTION_LIMITS[header]['min']
-                xu[character_index * (gene_count // 3) + index] = headers.MOTION_LIMITS[header]['max']
+                xl[character_index * (gene_count // 3) + index] = headers.HEADER_LIMITS[header]['min']
+                xu[character_index * (gene_count // 3) + index] = headers.HEADER_LIMITS[header]['max']
 
-        prob_vars: dict[str, int] = {f"x{i}": Integer(bounds=(xl[i], xu[i])) for i in range(gene_count)}
+        prob_vars: dict[str, int] = {f'x{i}': Integer(bounds=(xl[i], xu[i])) for i in range(gene_count)}
         super().__init__(
             elementwise=False,
             **kwargs,
@@ -174,7 +172,7 @@ class FightingIceProblem(Problem):
             evaluate_individual,
             X,
             settings=eval_settings,
-            resources={'cores': self.engine_multiplier * 3}
+            resources={'cores': self.engine_multiplier * 3},
         )
 
         results = self.client.gather(futures)

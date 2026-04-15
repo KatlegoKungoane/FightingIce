@@ -1,7 +1,8 @@
 import os
 import pathlib
-import pandas
+
 import numpy as np
+import pandas
 
 import constants as c
 from MotionClasses.MotionHeaders import MotionHeaders as headers
@@ -158,10 +159,10 @@ class ConstraintInformation:
     utilized_numerical_cols: list[int] = []
 
     # We are going to select the cols that are in use (not NONE) and not the index col as well
-    theoretical_max_numerical_range: np.ndarray = np.zeros(shape=(c.MotionData.cols - list(headers.MOTION_LIMITS.values()).count(None) + 1))
+    theoretical_max_numerical_range: np.ndarray = np.zeros(shape=(c.MotionData.cols - list(headers.HEADER_LIMITS.values()).count(None) + 1))
 
     counter: int = 0
-    for index, header_limits in enumerate(headers.MOTION_LIMITS.values()):
+    for index, header_limits in enumerate(headers.HEADER_LIMITS.values()):
         # We are basically ignoring the index col, motion name
         if index == 0:
             continue

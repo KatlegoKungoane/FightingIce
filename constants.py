@@ -13,7 +13,7 @@ ZIP_FILES: bool = True
 
 NODES: int = 1
 # We actually have 20, but wanna say 15 to align to cluster
-CORES: int = 15
+CORES: int = 20
 EST_RAM_PER_ENGINE_GB: int = 2
 PARTITION: str = 'regular'
 SCHEDULER_FILE: str | None = None
@@ -30,6 +30,8 @@ class LOGS:
     POINT: str = 'point'
     REPLAY: str = 'replay'
     SOUND: str = 'sound'
+    DASK_LOGS: str = 'dask_logs'
+    SOLUTION_EXPLORER: str = 'solution_explorer'
 
 
     KNOWN_LOGS: list[str] = [

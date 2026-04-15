@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 import constants as c
@@ -9,4 +10,11 @@ for log_group_name in c.LOGS.KNOWN_LOGS:
         str(pathlib.Path('log').joinpath(log_group_name)),
         False,
     )
-    print('done\n')
+
+print('purging dask logs')
+f.purge_directory(c.LOGS.DASK_LOGS, False)
+
+print('purge solution replay logs')
+f.purge_directory(os.path.join(c.LOGS.SOLUTION_EXPLORER, 'logs'))
+
+print('done\n')
