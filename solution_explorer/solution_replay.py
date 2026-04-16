@@ -9,6 +9,7 @@ import os
 import uuid
 import pathlib
 from datetime import datetime
+import time
 
 import numpy as np
 from sympy import divisors
@@ -93,12 +94,15 @@ def generate_data(match_counts: np.ndarray, repeat_count: int = 10) -> None:
     for match_count in match_counts:
         print(f'About to start simulations for match count: {match_count}')
         results = np.zeros(shape=repeat_count, dtype=np.float64)
+        times = np.zeros(shape=repeat_count, dtype=np.float64)
         for repeat in range(repeat_count):
             print(f'repeat: {repeat}')
+            start_time = time.perf_counter()
             results[repeat] = replay_single_mutation(
                 gene=generate_random_gene(motion_adjustments),
                 match_per_agent=match_count,
             )[1]
+            times[repeat] = time.perf_counter() - start_time
 
         np.savetxt(
             fname=os.path.join(
@@ -112,7 +116,19 @@ def generate_data(match_counts: np.ndarray, repeat_count: int = 10) -> None:
             fmt='%.10f',
         )
 
+        np.savetxt(
+            fname=os.path.join(
+                c.LOGS.SOLUTION_EXPLORER,
+                'logs',
+                job_id,
+                f'match_time_{match_count}.csv',
+            ),
+            X=times,
+            delimiter=',',
+            fmt='%.10f',
+        )
+
 
 if __name__ == '__main__':
-    generate_data(match_counts=np.array([1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50]), repeat_count=10)
+    generate_data(match_counts=np.array([1, 2, 3, 5, 7, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100]), repeat_count=10)
     # print(replay_single_mutation(gene=np.array([140, 107, 144, 224, 174, 14]), match_per_agent=8))
