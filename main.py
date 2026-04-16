@@ -129,10 +129,10 @@ if __name__ == '__main__':
         # runner = DaskParallelization(client)
 
         problem = FightingIceProblem(
-            experiment_name='mixed_exp_02',
+            experiment_name='mixed_exp_02_32v',
             dask_client=client,
             engine_multiplier=4,
-            no_matches=2,
+            no_matches=10,
             game_duration_sec=60,
             visual=False,
             # elementwise_runner=runner,

@@ -118,10 +118,52 @@ class FightingIceProblem(Problem):
 
         # For the first iteration, we are only going to increase the hit damage for stand a, and energy add for stand b
         # Remember this is for every character
-        self.motion_adjustments: dict[str, str] = {
-            motion_names.STAND_A: headers.ATTACK_HIT_DAMAGE,
-            motion_names.STAND_B: headers.ATTACK_HIT_ADD_ENERGY,
-        }
+        self.motion_adjustments: list[tuple[str, str]] = [
+            (motion_names.STAND_A, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_A, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.STAND_B, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_B, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.CROUCH_A, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_A, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.CROUCH_B, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_B, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.AIR_A, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_A, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.AIR_B, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_B, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.AIR_DA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_DA, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.AIR_DB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_DB, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.STAND_FA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_FA, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.STAND_FB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_FB, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.CROUCH_FA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_FA, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.CROUCH_FB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_FB, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.AIR_FA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_FA, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.AIR_FB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_FB, headers.ATTACK_GIVE_ENERGY),
+
+            (motion_names.AIR_UA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_UA, headers.ATTACK_GIVE_ENERGY),
+        ]
 
         self.motion_coordinates: np.ndarray = gf.get_motion_coordinates(self.motion_adjustments)
 
@@ -133,7 +175,7 @@ class FightingIceProblem(Problem):
         xu = np.zeros(shape=gene_count, dtype=np.int64)
 
         for character_index in range(3):
-            for index, header in enumerate(self.motion_adjustments.values()):
+            for index, (_, header) in enumerate(self.motion_adjustments):
                 xl[character_index * (gene_count // 3) + index] = headers.HEADER_LIMITS[header]['min']
                 xu[character_index * (gene_count // 3) + index] = headers.HEADER_LIMITS[header]['max']
 

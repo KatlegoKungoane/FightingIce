@@ -16,7 +16,7 @@ from sympy import divisors
 
 import constants as c
 import functions as f
-from GeneticAlgorithm.genetic_functions import constraint_novelty_search, gene_to_motions, generate_random_gene, orchestrate_matches
+from GeneticAlgorithm.genetic_functions import constraint_novelty_search, gene_to_motions, generate_random_gene, orchestrate_matches, get_motion_coordinates
 from MotionClasses.MotionHeaders import MotionHeaders as headers
 from MotionClasses.MotionNames import MotionNames as motion_names
 
@@ -25,20 +25,12 @@ def replay_single_mutation(gene: np.ndarray, match_per_agent: int) -> tuple[floa
     max_capacity = c.CORES // 3
 
     # Subject to change with other experiments
-    motion_adjustments: dict[str, str] = {
-        motion_names.STAND_A: headers.ATTACK_HIT_DAMAGE,
-        motion_names.STAND_B: headers.ATTACK_HIT_ADD_ENERGY,
-    }
+    motion_adjustments: list[tuple[str, str]] = [
+        (motion_names.STAND_A, headers.ATTACK_HIT_DAMAGE),
+        (motion_names.STAND_B, headers.ATTACK_HIT_ADD_ENERGY),
+    ]
 
-    motion_coordinates = np.array(
-        [
-            [
-                motion_names.MOTION_NAMES.index(motion),
-                headers.HEADERS.index(header),
-            ]
-            for motion, header in motion_adjustments.items()
-        ]
-    )
+    motion_coordinates = get_motion_coordinates(motion_adjustments)
     mutated_motions = gene_to_motions(gene, motion_coordinates)
 
     if match_per_agent <= max_capacity:
@@ -74,10 +66,10 @@ def replay_single_mutation(gene: np.ndarray, match_per_agent: int) -> tuple[floa
 
 # We designed this function such that we can maybe expand it to work on the cluster if we need it to.
 def generate_data(match_counts: np.ndarray, repeat_count: int = 10) -> None:
-    motion_adjustments: dict[str, str] = {
-        motion_names.STAND_A: headers.ATTACK_HIT_DAMAGE,
-        motion_names.STAND_B: headers.ATTACK_HIT_ADD_ENERGY,
-    }
+    motion_adjustments: list[tuple[str, str]] = [
+        (motion_names.STAND_A, headers.ATTACK_HIT_DAMAGE),
+        (motion_names.STAND_B, headers.ATTACK_HIT_ADD_ENERGY),
+    ]
     job_id: str = f.parse_argument_str(
         shorthand='jid',
         full_name='jon_id',

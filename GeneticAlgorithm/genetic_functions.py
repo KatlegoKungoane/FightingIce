@@ -295,22 +295,22 @@ def gene_to_motions(gene: np.ndarray, motion_coordinates: np.ndarray) -> list[pa
     return mutated_motions
 
 
-def get_motion_coordinates(motion_adjustments: dict[str, str]) -> np.ndarray:
+def get_motion_coordinates(motion_adjustments: list[tuple[str, str]]) -> np.ndarray:
     return np.array(
         [
             [
                 mn.MotionNames.MOTION_NAMES.index(motion),
                 mh.MotionHeaders.HEADERS.index(header),
             ]
-            for motion, header in motion_adjustments.items()
+            for motion, header in motion_adjustments
         ]
     )
 
-def generate_random_gene(motion_adjustments: dict[str, str]) -> np.ndarray:
+def generate_random_gene(motion_adjustments: list[tuple[str, str]]) -> np.ndarray:
     random_generator: np.random.Generator = np.random.default_rng(seed=1)
 
     header_limits_container = []
-    for control_header in motion_adjustments.values():
+    for _, control_header in motion_adjustments:
         header_limits = mh.MotionHeaders.HEADER_LIMITS[control_header]
         header_limits_container.append(random_generator.integers(
             low=header_limits['min'],
