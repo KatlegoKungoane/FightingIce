@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
     try:
         problem = FightingIceProblem(
-            experiment_name='mixed_exp_02_32v',
+            experiment_name='mixed_exp_02_32v_n15_c10_m10',
             dask_client=client,
             engine_multiplier=4,
             no_matches=10,
@@ -173,11 +173,11 @@ if __name__ == '__main__':
                     n_partitions=39,
                 ),
                 # Magic number is 20
-                n_neighbors=20,
+                n_neighbors=15,
                 decomposition=PBI(),
                 sampling=IntegerRandomSampling(),
-                crossover=SBX(prob=1.0, eta=20, vtype=int),
-                mutation=PolynomialMutation(prob=1.0, eta=20, vtype=int),
+                crossover=SBX(prob=1.0, eta=10, vtype=int),
+                mutation=PolynomialMutation(prob=1.0, eta=10, vtype=int),
             ),
             termination=get_termination(c.pymoo.TERMINATION.GENERATION_LIMIT, 10),
             seed=1,
