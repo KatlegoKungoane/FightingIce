@@ -1,32 +1,40 @@
-from typing import TypedDict
+import asyncio
+import os
+import pathlib
+import time
+from datetime import datetime
+from itertools import combinations
+
 import numpy as np
 import pandas
-import os
-from itertools import combinations
-import pathlib
-from datetime import datetime
-import time
-import asyncio
 
 import constants as c
 import functions as f
-
 import MotionClasses.MotionEditor as me
 import MotionClasses.MotionHeaders as mh
 import MotionClasses.MotionNames as mn
 
 
 # According to research, its just euclid distance between objects
-# TODO parallelize
 def constraint_novelty_search(
     numerical_motions: np.ndarray,
+    motion_coordinates: np.ndarray,
+    mapped_numerical_motion_coordinates: np.ndarray,
     string_motions: np.ndarray | None,
     boolean_motions: np.ndarray | None,
 ) -> float:
-    numerical_motions_slice = numerical_motions.copy()[:, :, me.ConstraintInformation.utilized_numerical_cols]
-    num_zen_garnet_distance = np.linalg.norm(numerical_motions_slice[0] - numerical_motions_slice[1])
-    num_zen_lud_distance = np.linalg.norm(numerical_motions_slice[0] - numerical_motions_slice[2])
-    num_garnet_lud_distance = np.linalg.norm(numerical_motions_slice[1] - numerical_motions_slice[2])
+    numerical_motions_slice = numerical_motions.copy()
+
+    # We are going to make it such that we only care about the indices in question
+    # The code is indexing the second column of the `motion_coordinates` array and storing it in the
+    numerical_rows = mapped_numerical_motion_coordinates[:, 0]
+    numerical_cols = mapped_numerical_motion_coordinates[:, 1]
+    picked_numerical_differences = np.zeros_like(numerical_motions_slice, dtype=numerical_motions_slice.dtype)
+    picked_numerical_differences[:, numerical_rows, numerical_cols] = numerical_motions_slice[:, numerical_rows, numerical_cols]
+
+    num_zen_garnet_distance = np.linalg.norm(picked_numerical_differences[0] - picked_numerical_differences[1])
+    num_zen_lud_distance = np.linalg.norm(picked_numerical_differences[0] - picked_numerical_differences[2])
+    num_garnet_lud_distance = np.linalg.norm(picked_numerical_differences[1] - picked_numerical_differences[2])
 
     if string_motions is None:
         str_zen_garnet_distance = 0
@@ -46,11 +54,7 @@ def constraint_novelty_search(
         bool_zen_lud_distance = np.linalg.norm((boolean_motions[0] != boolean_motions[2]).astype(int))
         bool_garnet_lud_distance = np.linalg.norm((boolean_motions[1] != boolean_motions[2]).astype(int))
 
-    # Adding a normalization to the uniqueness constraint
-    numerical_normalization: float = (
-        me.ConstraintInformation.THEORETICAL_MAX_NUMERICAL_UNIQUENESS_SINGLE_ROW  #
-        * numerical_motions.shape[1]
-    )
+    numerical_normalization: float = me.calculate_theoretical_max_uniqueness(f.numpy_2d_to_tuple(motion_coordinates))
 
     str_normalization: float = (
         1  #
@@ -64,17 +68,6 @@ def constraint_novelty_search(
         else boolean_motions.shape[1] * boolean_motions.shape[2]
     )
 
-    # return (
-    #     num_zen_garnet_distance / numerical_normalization
-    #     + num_zen_lud_distance / numerical_normalization
-    #     + num_garnet_lud_distance / numerical_normalization
-    #     + str_zen_garnet_distance / str_normalization
-    #     + str_zen_lud_distance / str_normalization
-    #     + str_garnet_lud_distance / str_normalization
-    #     + bool_zen_garnet_distance / bool_normalization
-    #     + bool_zen_lud_distance / bool_normalization
-    #     + bool_garnet_lud_distance / bool_normalization
-    # ) / 9
 
     return (
         f.calculate_harmonic_mean(
@@ -136,6 +129,8 @@ async def wait_for_point_file(experiment_name: str, timeout: int = 10) -> pathli
 * TODO: Think about scaling at a later stage
 * For now, we will have 3 engines to handle the different matches against the MCTS agents
 """
+
+
 async def orchestrate_matches(
     mutated_motions: list[pandas.DataFrame],
     no_matches: int,
@@ -202,8 +197,6 @@ async def orchestrate_matches(
         '--non-delay',
         '2',
     ]
-
-    # print(f'Java jar command:{" ".join(common_commands)}')
 
     os.makedirs(os.path.join('log', 'engines'), exist_ok=True)
 
@@ -278,6 +271,7 @@ async def orchestrate_matches(
         1,
     )
 
+
 def gene_to_motions(gene: np.ndarray, motion_coordinates: np.ndarray) -> list[pandas.DataFrame]:
     mutated_motions = [motion.copy() for motion in me.DEFAULT_MOTION_LIST]
 
@@ -306,16 +300,33 @@ def get_motion_coordinates(motion_adjustments: list[tuple[str, str]]) -> np.ndar
         ]
     )
 
+
+def map_numerical_motion_coordinates(motion_adjustments: list[tuple[str, str]]) -> np.ndarray:
+    # Add a +1 to accommodate for the motion_name being in the header...
+    # Solution is kinda wacky, would like to rethink in the future
+    return np.array(
+        [
+            [
+                mn.MotionNames.MAPPER[motion],
+                mh.MotionHeaders.MAPPER[mh.MotionHeaders.HEADERS.index(header)] + 1,
+            ]
+            for motion, header in motion_adjustments
+        ]
+    )
+
+
 def generate_random_gene(motion_adjustments: list[tuple[str, str]]) -> np.ndarray:
     random_generator: np.random.Generator = np.random.default_rng(seed=1)
 
     header_limits_container = []
     for _, control_header in motion_adjustments:
         header_limits = mh.MotionHeaders.HEADER_LIMITS[control_header]
-        header_limits_container.append(random_generator.integers(
-            low=header_limits['min'],
-            high=header_limits['max'] + 1,
-            size=3,
-        ))
+        header_limits_container.append(
+            random_generator.integers(
+                low=header_limits['min'],
+                high=header_limits['max'] + 1,
+                size=3,
+            )
+        )
 
     return np.stack(header_limits_container).T.flatten()

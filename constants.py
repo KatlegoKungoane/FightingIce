@@ -102,7 +102,8 @@ class ScreenDimensions:
 
 class MotionData:
     rows: int = 56
-    cols: int = 33
+    # Note, the first column doesn't really exist. We can never do anything about a motion_name
+    cols: int = 34
     shape: tuple[int, int] = (rows, cols)
 
 class pymoo:

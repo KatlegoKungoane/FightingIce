@@ -732,3 +732,11 @@ def get_port_number_from_engine_logs(experiment_name: str, pid: int) -> int | No
         print(f'An error occured when trying to get port from {engine_logs_path}\n{e}')
 
     return None
+
+
+def numpy_2d_to_tuple(numpy_array: np.ndarray) -> tuple:
+    return tuple(map(tuple, numpy_array))
+
+
+def get_current_time_str(delimiter: str = ':') -> str:
+    return datetime.datetime.now().strftime(f'%H{delimiter}%M{delimiter}%S')

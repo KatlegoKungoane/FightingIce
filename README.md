@@ -5,13 +5,13 @@
 - Further refine meta state ranges
 - Add constraints for the meta state (G)
 - Logging: Ensure log/engines/ is on the cluster's high-speed "scratch" storage, or the I/O might slow down your simulation.
-- Correct the uniqueness constraint... Its looking at everything, which isnt fair. We need louder signals for things we actually control.
 - Chat said that the flop is that I do too many disk writes. I need to save things to a tmp folder then move it over when I am done. This is the disk on the node itself, and information doesn't have to travel over the network.
 - Write small experiment to test the time difference between writing to tmp vs writing over cluster network
-- Look into using a Vectorized evaluation
 - Upgrade python on cluster bro
-- When you look at solution replay, there is a lot of variance. We need to do experiments to find the optimal number of games to play to reduce that variance!!!
 - I am so interested in jobs. I wanna learn how to create a space where I can submit jobs that require credits, and have cores / nodes just go and pick them up. Sounds so cool.
+- ✅ Correct the uniqueness constraint... Its looking at everything, which isnt fair. We need louder signals for things we actually control.
+- ✅ When you look at solution replay, there is a lot of variance. We need to do experiments to find the optimal number of games to play to reduce that variance!!!
+- ✅Look into using a Vectorized evaluation
 
 
 # Note list

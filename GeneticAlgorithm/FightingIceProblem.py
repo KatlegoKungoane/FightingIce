@@ -38,6 +38,7 @@ class IndividualSettings:
     def __init__(
         self,
         motion_coordinates: np.ndarray,
+        mapped_numerical_motion_coordinates: np.ndarray,
         no_matches: int,
         experiment_name: str,
         engine_multiplier: int,
@@ -45,6 +46,7 @@ class IndividualSettings:
         visual: bool,
     ):
         self.motion_coordinates = motion_coordinates
+        self.mapped_numerical_motion_coordinates = mapped_numerical_motion_coordinates
         self.no_matches = no_matches
         self.experiment_name = experiment_name
         self.engine_multiplier = engine_multiplier
@@ -57,9 +59,11 @@ def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> list[flo
 
     numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
     uniqueness_reward = gf.constraint_novelty_search(
-        numerical_differences,
-        None,
-        None,
+        numerical_motions=numerical_differences,
+        motion_coordinates=settings.motion_coordinates,
+        mapped_numerical_motion_coordinates=settings.mapped_numerical_motion_coordinates,
+        string_motions=None,
+        boolean_motions=None,
     )
 
     experiment_suffix_uuid: str = uuid.uuid4().hex[:6]
@@ -92,7 +96,6 @@ class FightingIceProblem(Problem):
         no_matches: int = 1,
         engine_multiplier: int = 1,
         game_duration_sec: int = 60,
-        elementwise: bool = True,
         visual: bool = False,
         **kwargs: Any,
     ) -> None:
@@ -121,51 +124,38 @@ class FightingIceProblem(Problem):
         self.motion_adjustments: list[tuple[str, str]] = [
             (motion_names.STAND_A, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.STAND_A, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.STAND_B, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.STAND_B, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.CROUCH_A, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.CROUCH_A, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.CROUCH_B, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.CROUCH_B, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.AIR_A, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.AIR_A, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.AIR_B, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.AIR_B, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.AIR_DA, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.AIR_DA, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.AIR_DB, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.AIR_DB, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.STAND_FA, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.STAND_FA, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.STAND_FB, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.STAND_FB, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.CROUCH_FA, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.CROUCH_FA, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.CROUCH_FB, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.CROUCH_FB, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.AIR_FA, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.AIR_FA, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.AIR_FB, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.AIR_FB, headers.ATTACK_GIVE_ENERGY),
-
             (motion_names.AIR_UA, headers.ATTACK_HIT_ADD_ENERGY),
             (motion_names.AIR_UA, headers.ATTACK_GIVE_ENERGY),
         ]
 
         self.motion_coordinates: np.ndarray = gf.get_motion_coordinates(self.motion_adjustments)
+        self.numerical_mapped_motion_coordinates = gf.map_numerical_motion_coordinates(self.motion_adjustments)
 
         # might not be needed
         self.motion_mapper = f.motion_cord_to_index_bulk(self.motion_coordinates)
@@ -183,15 +173,12 @@ class FightingIceProblem(Problem):
         super().__init__(
             elementwise=False,
             **kwargs,
-            # n_var=gene_count,
             n_obj=2,
-            # n_ieq_constr=gene_count,
             n_ieq_constr=0,
             xl=xl,
             xu=xu,
             vtype=int,
             vars=prob_vars,
-            # elementwise_runner=elementwise_runner,
         )
 
     def _evaluate(
@@ -203,6 +190,7 @@ class FightingIceProblem(Problem):
     ) -> None:
         eval_settings = IndividualSettings(
             motion_coordinates=self.motion_coordinates,
+            mapped_numerical_motion_coordinates=self.numerical_mapped_motion_coordinates,
             no_matches=self.no_matches,
             experiment_name=self.experiment_name,
             engine_multiplier=self.engine_multiplier,

@@ -159,6 +159,7 @@ class MotionHeaders:
         IMAGE: 'string',
     }
 
+    # We can also think about making this 0 instead of None
     HEADER_LIMITS: dict[str, RangeLimit | None] = {
         MOTION_NAME: None,
         FRAME_NUMBER: None,
@@ -205,11 +206,11 @@ class MotionHeaders:
     for index, (header, data_type) in enumerate(D_TYPE.items()):
         match data_type:
             case 'string':
-                MAPPER[index] = len(NUMERICAL_HEADERS)
-                NUMERICAL_HEADERS.append(header)
-            case 'int16':
                 MAPPER[index] = len(STRING_HEADERS)
                 STRING_HEADERS.append(header)
+            case 'int16':
+                MAPPER[index] = len(NUMERICAL_HEADERS)
+                NUMERICAL_HEADERS.append(header)
             case _:
                 MAPPER[index] = len(BOOLEAN_HEADERS)
                 BOOLEAN_HEADERS.append(header)

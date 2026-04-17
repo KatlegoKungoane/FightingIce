@@ -101,6 +101,32 @@ from pymoo.operators.mutation.pm import PolynomialMutation
 # MOEAD - pop = 3 - time = 222.09393120001187
 # NSGA - pop = 3 - time = 236.92388630000642
 
+# Uniqueness adjustments tests
+# import GeneticAlgorithm.genetic_functions as gf
+
+# from MotionClasses.MotionHeaders import MotionHeaders as headers
+# from MotionClasses.MotionNames import MotionNames as motion_names
+
+# if __name__ == '__main__' and False:
+#     motion_adjustments: list[tuple[str, str]] = [
+#         (motion_names.STAND_A, headers.ATTACK_HIT_ADD_ENERGY),
+#         (motion_names.STAND_A, headers.ATTACK_GIVE_ENERGY),
+#     ]
+
+#     motion_coordinates = gf.get_motion_coordinates(motion_adjustments)
+#     x = gf.generate_random_gene(motion_adjustments)
+#     mutated_motions = gf.gene_to_motions(gene=x, motion_coordinates=motion_coordinates)
+#     mapped_motion_coordinates = gf.map_numerical_motion_coordinates(motion_adjustments)
+
+#     numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
+#     uniqueness_reward = gf.constraint_novelty_search(
+#         numerical_motions=numerical_differences,
+#         motion_coordinates=motion_coordinates,
+#         mapped_numerical_motion_coordinates=mapped_motion_coordinates,
+#         string_motions=None,
+#         boolean_motions=None,
+#     )
+
 if __name__ == '__main__':
     f.arg_parser()
 
@@ -126,8 +152,6 @@ if __name__ == '__main__':
     print(f'Dask Dashboard available at: {client.dashboard_link}')
 
     try:
-        # runner = DaskParallelization(client)
-
         problem = FightingIceProblem(
             experiment_name='mixed_exp_02_32v',
             dask_client=client,
@@ -135,7 +159,6 @@ if __name__ == '__main__':
             no_matches=10,
             game_duration_sec=60,
             visual=False,
-            # elementwise_runner=runner,
         )
 
         start_time = time.perf_counter()

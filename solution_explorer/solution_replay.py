@@ -17,11 +17,12 @@ from sympy import divisors
 import constants as c
 import functions as f
 from GeneticAlgorithm.genetic_functions import constraint_novelty_search, gene_to_motions, generate_random_gene, orchestrate_matches, get_motion_coordinates
+from GeneticAlgorithm.genetic_functions import map_numerical_motion_coordinates
 from MotionClasses.MotionHeaders import MotionHeaders as headers
 from MotionClasses.MotionNames import MotionNames as motion_names
 
 
-def replay_single_mutation(gene: np.ndarray, match_per_agent: int) -> tuple[float, float]:
+def replay_single_mutation(gene: np.ndarray, match_per_agent: int, motion_adjustments: list[tuple[str, str]]) -> tuple[float, float]:
     max_capacity = c.CORES // 3
 
     # Subject to change with other experiments
@@ -55,6 +56,8 @@ def replay_single_mutation(gene: np.ndarray, match_per_agent: int) -> tuple[floa
     numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
     uniqueness_reward: float = constraint_novelty_search(
         numerical_differences,
+        get_motion_coordinates(motion_adjustments),
+        map_numerical_motion_coordinates(motion_adjustments),
         None,
         None,
     )
