@@ -32,6 +32,7 @@ import numpy as np
 from distributed import Client, LocalCluster
 import sys
 from dask_jobqueue import SLURMCluster
+import pathlib
 
 import MotionClasses.MotionEditor as me
 from pymoo.algorithms.moo.moead import MOEAD
@@ -131,20 +132,23 @@ if __name__ == '__main__':
     f.arg_parser()
 
     if c.SCHEDULER_FILE is not None:
-        print("--- Running with Scheduler File ---")
+        if not pathlib.Path(c.SCHEDULER_FILE).exists():
+            raise FileNotFoundError(f'Missing file: {c.SCHEDULER_FILE}.\nCannot start job at all')
+
+        print('--- Running with Scheduler File ---')
         client = Client(scheduler_file=c.SCHEDULER_FILE)
 
-        print(f"Waiting for workers to report for duty...")
+        print(f'Waiting for workers to report for duty...')
         client.wait_for_workers(n_workers=c.NODES, timeout=30)
-        print("Cluster is fully populated. Starting Evolution.")
+        print('Cluster is fully populated. Starting Evolution.')
     else:
-        print("--- Running with LocalCluster ---")
+        print('--- Running with LocalCluster ---')
 
         core_count: int = c.CORES // c.NODES
         cluster = LocalCluster(
             n_workers=c.NODES,
             threads_per_worker=core_count,
-            resources={'cores': core_count}
+            resources={'cores': core_count},
         )
 
         client = Client(cluster)
@@ -179,7 +183,12 @@ if __name__ == '__main__':
                 crossover=SBX(prob=1.0, eta=20, vtype=int),
                 mutation=PolynomialMutation(prob=1.0, eta=20, vtype=int),
             ),
-            termination=get_termination(c.pymoo.TERMINATION.GENERATION_LIMIT, 10),
+            termination=get_termination(
+                c.pymoo.TERMINATION.DEFAULT_MOO_TERMINATION,
+                n_gen=10,
+                ftol=1e-6,
+                n_last=3,
+            ),
             seed=1,
             save_history=True,
             verbose=True,

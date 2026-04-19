@@ -1,4 +1,5 @@
 import argparse
+import dill
 import asyncio
 import datetime
 import math
@@ -12,6 +13,9 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from itertools import islice
+
+from pymoo.core.result import Result
+from pymoo.core.algorithm import Algorithm
 
 import aiofiles
 import numpy as np
@@ -740,3 +744,48 @@ def numpy_2d_to_tuple(numpy_array: np.ndarray) -> tuple:
 
 def get_current_time_str(delimiter: str = ':') -> str:
     return datetime.datetime.now().strftime(f'%H{delimiter}%M{delimiter}%S')
+
+
+def read_results(res_name: str) -> None:
+    with open(res_name, 'rb') as f:
+        res: Result = dill.load(f)
+
+
+    print(f"{'gen':>5} | {'n_eval':>7} | {'n_nds':>5} | {'eps':>12}")
+    print("-" * 45)
+    # Taken from output file
+    print("time sec: 1366")
+
+
+    for i, generation in enumerate(res.history):
+        n_gen = i + 1
+        n_eval = generation.evaluator.n_eval
+        n_nds = len(generation.opt)
+        print(f"{n_gen:>5} | {n_eval:>7} | {n_nds:>5} | {generation.opt.get('F').min():>12.6f}")
+
+    print("non dominated solutions")
+    population = res.opt
+
+    genes: np.ndarray = population.get('X')
+    fitnesses: np.ndarray = population.get('F')
+
+    for gene, fitness in zip(genes, fitnesses, strict=True):
+        print(f"Gene: [{", ".join(np.round(gene, 4).astype(str))}]")
+        print(f"Fitness: {fitness}\n")
+
+    print()
+
+    for index, generation in enumerate(res.history):
+        generation: Algorithm
+
+        print(f"Generation: {index}\n")
+        population = generation.pop
+
+        genes: np.ndarray = population.get('X')
+        fitnesses: np.ndarray = population.get('F')
+
+        for gene, fitness in zip(genes, fitnesses, strict=True):
+            print(f"Gene: [{", ".join(np.round(gene, 4).astype(str))}]")
+            print(f"Fitness: {fitness}\n")
+
+        print()

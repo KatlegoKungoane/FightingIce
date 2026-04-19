@@ -112,6 +112,7 @@ class pymoo:
         GENERATION_LIMIT = 'n_gen'
         OBJECTIVE_THRESHOLD = 'fmin'
         TIME_LIMIT = 'time'
+        DEFAULT_MOO_TERMINATION = 'moo'
 
     class MOEAD:
         class SpreadType:

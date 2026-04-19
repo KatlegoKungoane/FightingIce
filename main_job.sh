@@ -11,6 +11,7 @@ export PYTHONUNBUFFERED=1
 
 mkdir -p dask_logs
 mkdir -p dask_logs/worker_logs_$SLURM_JOB_ID
+mkdir -p dask_schedulers
 
 PROJECT_ROOT="/home-mscluster/kkungoane/dare-fighting-ice/FightingIce"
 export PYTHONPATH=$PYTHONPATH:$PROJECT_ROOT
