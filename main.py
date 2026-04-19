@@ -187,7 +187,7 @@ if __name__ == '__main__':
                 c.pymoo.TERMINATION.DEFAULT_MOO_TERMINATION,
                 n_max_gen=10,
                 ftol=1e-6,
-                n_last=3,
+                period=3,
             ),
             seed=1,
             save_history=True,
