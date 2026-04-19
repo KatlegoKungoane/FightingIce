@@ -185,7 +185,7 @@ if __name__ == '__main__':
             ),
             termination=get_termination(
                 c.pymoo.TERMINATION.DEFAULT_MOO_TERMINATION,
-                n_gen=10,
+                n_max_gen=10,
                 ftol=1e-6,
                 n_last=3,
             ),
