@@ -11,6 +11,10 @@
 - I am so interested in jobs. I wanna learn how to create a space where I can submit jobs that require credits, and have cores / nodes just go and pick them up. Sounds so cool.
 - You don't have to keep every motion file hey... If you have the gene that created that motion file, then theres no need.
 - Additionally, we have motions and custom motions... We need to pick one!
+- Add functionality to MCTS agents to perform only valid actions
+- Look into saving tree results.
+- Current MCTS agent cannot cancel actions mid action. IsControl flag will stop that.
+- Current MCTS Still has some miss instances, need to diagnose that.
 - ✅ Correct the uniqueness constraint... Its looking at everything, which isnt fair. We need louder signals for things we actually control.
 - ✅ When you look at solution replay, there is a lot of variance. We need to do experiments to find the optimal number of games to play to reduce that variance!!!
 - ✅Look into using a Vectorized evaluation

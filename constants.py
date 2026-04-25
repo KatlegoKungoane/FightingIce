@@ -93,6 +93,7 @@ class PointHeaderNames:
 
 class AgentNames:
     MCTS_AGENT = 'MctsAi23i'
+    KAT_MCTS_AGENT = 'katai.mcts.basic.MCTSAgent'
     KAT_KICK_AI = 'kat kick'
 
 class ScreenDimensions:

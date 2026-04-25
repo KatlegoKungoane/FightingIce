@@ -1,10 +1,11 @@
 import asyncio
 import os
-import numpy as np
+
+from pyftg.socket.aio.gateway import Gateway
 
 import constants as c
 import functions as f
-import MotionClasses.MotionEditor as me
+
 """
 	Objective of this file
 		We are trying to simulate x games, ran over multiple simulators.
@@ -30,6 +31,7 @@ common_commands = [
     '--limithp',
     str(c.PLAYER_HP),
     str(c.PLAYER_HP),
+    '--slow',
     '-df',
     '-r',
     '1',
@@ -42,30 +44,39 @@ common_commands = [
     # 'zen',
     # './custom_motions/zen.csv',
     # This is for the ai, so maybe turn on when you have those configured
-    '--headless-mode',
-    '--input-sync',
-    '--lightweight-mode',
+    # '--headless-mode',
+    # '--input-sync',
+    # '--lightweight-mode',
     '--pyftg-mode',
-    '--non-delay',
+    # '--non-delay',
     '2',
 ]
 
 print(f'Java jar command:{" ".join(common_commands)}')
 
+port: int | None = 61254
+
+gateway = Gateway(port=port)
+
 c.POLL_INTERVAL_SEC = 0
 asyncio.run(
-    f.start_simulators(
+    gateway.run_game(
+        ['test_mcts<name>ZEN', 'GARNET'],
+        [c.AgentNames.KAT_MCTS_AGENT, c.AgentNames.MCTS_AGENT],
         1,
-        common_commands,
-        characters=np.array([
-            [c.CHARACTERS.ZEN.name, c.CHARACTERS.GARNET.name],
-            [c.CHARACTERS.ZEN.name, c.CHARACTERS.LUD.name],
-            [c.CHARACTERS.GARNET.name, c.CHARACTERS.LUD.name],
-        ], dtype=object),
-        motions=me.DEFAULT_MOTION_LIST,
-        agent_names=np.full(shape=(3, 2), fill_value=c.AgentNames.MCTS_AGENT),
-        experiment_name=f'runner_{f.get_current_time_str(delimiter='.')}',
-        # deterministic=deterministic, really dont care
-        extra_commands=None,
     )
+    # f.start_simulators(
+    #     1,
+    #     common_commands,
+    #     characters=np.array([
+    #         [c.CHARACTERS.ZEN.name, c.CHARACTERS.GARNET.name],
+    #         [c.CHARACTERS.ZEN.name, c.CHARACTERS.LUD.name],
+    #         [c.CHARACTERS.GARNET.name, c.CHARACTERS.LUD.name],
+    #     ], dtype=object),
+    #     motions=me.DEFAULT_MOTION_LIST,
+    #     agent_names=np.full(shape=(3, 2), fill_value=c.AgentNames.KAT_MCTS_AGENT),
+    #     experiment_name=f'runner_{f.get_current_time_str(delimiter='.')}',
+    #     # deterministic=deterministic, really dont care
+    #     extra_commands=None,
+    # )
 )
