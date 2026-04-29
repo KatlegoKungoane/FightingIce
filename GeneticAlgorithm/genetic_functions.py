@@ -414,7 +414,7 @@ def calculate_win_probabilities(
             p2_projected_hp = p2_projected_hp / c.PLAYER_HP
 
             total_projected = p1_projected_hp + p2_projected_hp
-            win_probabilities[index] = p1_projected_hp / total_projected
+            win_probabilities[index] = p1_projected_hp / (total_projected + 1e-6)
 
         collected_win_probabilities.append(win_probabilities)
 
