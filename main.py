@@ -36,11 +36,17 @@ from pymoo.operators.sampling.rnd import IntegerRandomSampling
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 from pymoo.util.ref_dirs import get_reference_directions
+import sys
 
 import constants as c
 import functions as f
 import GeneticAlgorithm.genetic_functions as gf
 from GeneticAlgorithm.FightingIceProblem import FightingIceProblem
+
+from pymoo.core.algorithm import Algorithm
+from pymoo.core.problem import Problem
+from pymoo.core.result import Result
+
 
 # async def run_games(no_engines: int):
 #     common_commands = [
@@ -160,45 +166,73 @@ if __name__ == '__main__':
         client = Client(cluster)
 
     print(f'Dask Dashboard available at: {client.dashboard_link}')
+    experiment_name: str = 'uniq_p32_n10_energy'
 
     try:
-        problem = FightingIceProblem(
-            experiment_name='excitement_metric',
-            dask_client=client,
-            engine_multiplier=4,
-            no_matches=10,
-            game_duration_sec=60,
-            visual=False,
-        )
+        previous_result = f.resume_algorithm(None)
 
         start_time = time.perf_counter()
-        res = minimize(
-            problem=problem,
-            algorithm=MOEAD(
-                # N = n_partitions + 1 (for n_obj == 2)
-                # Must be greater than n_neighbors
-                ref_dirs=get_reference_directions(
-                    c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
-                    n_dim=2,
-                    n_partitions=39,
+        if previous_result is None:
+            print('New experiment')
+            current_gen_count: int = 0
+            problem = FightingIceProblem(
+                experiment_name=experiment_name,
+                dask_client=client,
+                engine_multiplier=4,
+                no_matches=3,
+                game_duration_sec=60,
+                visual=False,
+            )
+
+            res = minimize(
+                problem=problem,
+                algorithm=MOEAD(
+                    # N = n_partitions + 1 (for n_obj == 2)
+                    # Must be greater than n_neighbors
+                    ref_dirs=get_reference_directions(
+                        c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
+                        n_dim=2,
+                        n_partitions=29,
+                    ),
+                    # Magic number is 20
+                    n_neighbors=10,
+                    decomposition=PBI(theta=10),
+                    sampling=IntegerRandomSampling(),
+                    crossover=SBX(prob=1.0, eta=20, vtype=int),
+                    mutation=PolynomialMutation(prob=1.0, eta=20, vtype=int),
                 ),
-                # Magic number is 20
-                n_neighbors=15,
-                decomposition=PBI(theta=10),
-                sampling=IntegerRandomSampling(),
-                crossover=SBX(prob=1.0, eta=20, vtype=int),
-                mutation=PolynomialMutation(prob=1.0, eta=20, vtype=int),
-            ),
-            termination=get_termination(
+                termination=get_termination(
+                    c.pymoo.TERMINATION.DEFAULT_MOO_TERMINATION,
+                    n_max_gen=20,
+                    ftol=1e-6,
+                    period=6,
+                ),
+                copy_algorithm=previous_result is None,
+                seed=1,
+                save_history=True,
+                verbose=True,
+            )
+        else:
+            print('Continuing experiment')
+            problem: FightingIceProblem = previous_result.problem
+            algorithm: Algorithm = previous_result.algorithm
+
+            # Re-attach dask client
+            problem.client = client
+
+            current_gen_count: int = algorithm.n_gen
+            algorithm.termination = get_termination(
                 c.pymoo.TERMINATION.DEFAULT_MOO_TERMINATION,
-                n_max_gen=10,
+                n_max_gen=20 + current_gen_count,
                 ftol=1e-6,
-                period=3,
-            ),
-            seed=1,
-            save_history=True,
-            verbose=True,
-        )
+                period=6,
+            )
+
+            # Manually run the minimize loop
+            while algorithm.has_next():
+                algorithm.next()
+
+            res = algorithm.result()
 
         f.consolidate_data(
             problem.experiment_name,
@@ -211,7 +245,7 @@ if __name__ == '__main__':
         end_time = time.perf_counter()
         print(f'time: {end_time - start_time}')
 
-        with open('res.pkl', 'wb') as res_file:
+        with open(f'{experiment_name}.pkl', 'wb') as res_file:
             dill.dump(res, res_file)
     finally:
         client.shutdown()

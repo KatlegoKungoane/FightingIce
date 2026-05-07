@@ -150,7 +150,6 @@ async def orchestrate_matches(
     mutated_motions: list[pandas.DataFrame],
     no_matches: int,
     experiment_name: str,
-    experiment_suffix: str,
     engine_multiplier: int,
     game_duration_sec: int = 60,
     visual: bool = False,
@@ -158,8 +157,6 @@ async def orchestrate_matches(
     c.NO_GAMES = no_matches
     c.POLL_INTERVAL_SEC = 0
     c.GAME_DURATION_SEC = game_duration_sec
-
-    experiment_name = f'{experiment_name}_iter_{experiment_suffix}'
 
     custom_motion_paths: list[str] = [
         os.path.join(
@@ -178,6 +175,11 @@ async def orchestrate_matches(
 
     argument_for_custom_motions: np.ndarray = np.full(shape=(3, 6), dtype=object, fill_value='')
     character_order_combinations: list[tuple[int, int]] = list(combinations([0, 1, 2], 2))
+    # character_order_combinations: list[tuple[int, int]] = [
+    #     (0, 2),
+    #     (0, 2),
+    #     (0, 2),
+    # ]
     for index, combination in enumerate(character_order_combinations):
         argument_for_custom_motions[index, :] = np.array(
             [
@@ -291,6 +293,7 @@ def gene_to_motions(gene: np.ndarray, motion_coordinates: np.ndarray) -> list[pa
     mutated_motions = [motion.copy() for motion in me.DEFAULT_MOTION_LIST]
 
     adjustments = gene.reshape(3, -1).copy()
+    # adjustments = gene[np.newaxis, :].copy()
 
     # TODO: Right now, we are going to use a slow loop version, if you want this to work, we need to ensure that the dtypes we are adjusting are all the same.
     # I.E., numbers, strings, and booleans must be treated differently.
@@ -370,14 +373,14 @@ def calculate_win_probabilities(
     with open(str(full_file_path)) as file:
         frame_data_json = json.load(file)
 
-    row_count: int = 1
+    row_count: int = -1
     if isinstance(frame_data_json, list):
         row_count = len(frame_data_json)
 
     collected_win_probabilities: list[np.ndarray] = []
 
     for row in range(row_count):
-        if row_count == 1:
+        if row_count == -1:
             frame_data, max_frame = parse_frame_data(frame_data_json)
             win_probabilities = np.zeros(dtype=np.float64, shape=(max_frame))
         else:
@@ -426,24 +429,33 @@ def calculate_entropy_score(
     win_probabilities_list: list[np.ndarray],
     frame_window: int = 60,
     epsilon: float = 1e-9,
-    gamma_scale: float = 0.25,
+    gamma_scale: float = 0.75,
+    tanh_scale: float = -1,
 ) -> float:
-    total_costs = np.zeros(shape=len(win_probabilities_list), dtype=np.float64)
+    invalid_range: float = 1e-2
+    total_costs = np.zeros(
+        shape=len(win_probabilities_list),
+        dtype=np.float64,
+    )
+    averages = []
 
     for match_index, win_probabilities in enumerate(win_probabilities_list):
-        if win_probabilities.shape[0] <= frame_window:
-            total_costs[match_index] = 1
+        total_frames = win_probabilities.shape[0]
+
+        normalized_match_duration = total_frames / (c.GAME_DURATION_SEC * 60)
+        averages.append(normalized_match_duration)
+        if total_frames <= frame_window:
+            total_costs[match_index] = normalized_match_duration * invalid_range
             continue
 
         # TODO: We can speed this up very easily
-        total_frames = win_probabilities.shape[0]
-        time_step_size = 1.0 / total_frames
+        time_step_size = frame_window / total_frames
 
         total_cost = 0.0
 
-        for frame_index in range(frame_window, total_frames):
+        for frame_index in range(frame_window, total_frames, frame_window):
             current_win_probability = win_probabilities[frame_index]
-            previous_win_probability = win_probabilities[frame_index - 1]
+            previous_win_probability = win_probabilities[frame_index - frame_window]
 
             # Done just to enure we never pass o to log for errors
             sigma_t = (((current_win_probability - previous_win_probability) ** 2) / time_step_size) + epsilon
@@ -451,22 +463,28 @@ def calculate_entropy_score(
             # 4. Integrate (multiply by dt and add to the running total)
             total_cost += (sigma_t - math.log(sigma_t) - 1) * time_step_size
 
-        normalization: float = (epsilon - math.log(epsilon) - 1) * (total_frames - frame_window) * time_step_size
-        total_costs[match_index] = max(0, min(total_cost / normalization, 1))
+        normalization: float = (epsilon - math.log(epsilon) - 1) * ((total_frames - 1) // frame_window) * time_step_size
+        total_costs[match_index] = 1 - max(invalid_range, min(total_cost / normalization, 1))
+
+        if tanh_scale != -1:
+            if total_costs[match_index] != 0:
+                t = 1
+            total_costs[match_index] *= math.tanh(tanh_scale * (total_frames / (c.GAME_DURATION_SEC * 60)))
 
     # TODO: Can look into using harmonic mean here or sum
     entropy_score = np.average(total_costs)
+    # print('Ave time:', np.average(np.array(averages)))
 
     return pow(entropy_score, gamma_scale)
 
 
-async def calculate_excitement(experiment_name: str, frame_window: int = 300) -> float:
+async def calculate_excitement(experiment_name: str, tanh_scale: float = 3, frame_window: int = 300) -> float:
     frame_data_file: pathlib.Path | None = await wait_for_df_file(experiment_name)
 
     if frame_data_file is None or not frame_data_file.exists():
         raise FileNotFoundError(f'cant find the consolidated point file: *{experiment_name}*.json')
 
     win_probabilities = calculate_win_probabilities(frame_data_file.name, frame_window=frame_window)
-    overall_excitement: float = calculate_entropy_score(win_probabilities, frame_window=frame_window)
+    overall_excitement: float = calculate_entropy_score(win_probabilities, frame_window=frame_window, tanh_scale=tanh_scale)
 
-    return 1 - overall_excitement
+    return overall_excitement

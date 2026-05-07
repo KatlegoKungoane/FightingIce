@@ -67,17 +67,13 @@ def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> list[flo
         boolean_motions=None,
     )
 
-    experiment_suffix_uuid: str = uuid.uuid4().hex[:6]
-    experiment_suffix_time: str = datetime.now().strftime('%H%M%S')
+    amended_experiment_name: str = f.append_time_uuid_experiment(settings.experiment_name)
 
     average_win_rate = asyncio.run(
         gf.orchestrate_matches(
             mutated_motions=mutated_motions,
             no_matches=settings.no_matches,
-            experiment_name=settings.experiment_name,
-            # Could use this, but we already include the date in the other indicators, so unnecessary
-            # %Y%m%d_%H%M%S
-            experiment_suffix=f'{experiment_suffix_time}_{experiment_suffix_uuid}',
+            experiment_name=amended_experiment_name,
             engine_multiplier=settings.engine_multiplier,
             game_duration_sec=settings.game_duration_sec,
             visual=settings.visual,
@@ -86,11 +82,10 @@ def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> list[flo
 
     competitive_balance: float = f.transform_win_rate(average_win_rate)
 
-    tmp_experiment_name = f'{settings.experiment_name}_iter_{experiment_suffix_time}_{experiment_suffix_uuid}'
-    excitement = asyncio.run(gf.calculate_excitement(tmp_experiment_name))
+    excitement = asyncio.run(gf.calculate_excitement(amended_experiment_name, frame_window=10))
 
     # return np.array([-uniqueness_reward, -competitive_balance], dtype=np.float64)
-    return np.array([-excitement, 0], dtype=np.float64)
+    return np.array([-uniqueness_reward, 0], dtype=np.float64)
 
 
 class FightingIceProblem(Problem):
@@ -126,54 +121,37 @@ class FightingIceProblem(Problem):
 
         # For the first iteration, we are only going to increase the hit damage for stand a, and energy add for stand b
         # Remember this is for every character
-        # self.motion_adjustments: list[tuple[str, str]] = [
-        #     (motion_names.STAND_A, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.STAND_A, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.STAND_B, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.STAND_B, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.CROUCH_A, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.CROUCH_A, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.CROUCH_B, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.CROUCH_B, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.AIR_A, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.AIR_A, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.AIR_B, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.AIR_B, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.AIR_DA, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.AIR_DA, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.AIR_DB, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.AIR_DB, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.STAND_FA, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.STAND_FA, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.STAND_FB, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.STAND_FB, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.CROUCH_FA, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.CROUCH_FA, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.CROUCH_FB, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.CROUCH_FB, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.AIR_FA, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.AIR_FA, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.AIR_FB, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.AIR_FB, headers.ATTACK_GIVE_ENERGY),
-        #     (motion_names.AIR_UA, headers.ATTACK_HIT_ADD_ENERGY),
-        #     (motion_names.AIR_UA, headers.ATTACK_GIVE_ENERGY),
-        # ]
         self.motion_adjustments: list[tuple[str, str]] = [
-            (motion_names.STAND_A, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.STAND_B, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.CROUCH_A, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.CROUCH_B, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.AIR_A, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.AIR_B, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.AIR_DA, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.AIR_DB, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.STAND_FA, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.STAND_FB, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.CROUCH_FA, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.CROUCH_FB, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.AIR_FA, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.AIR_FB, headers.ATTACK_HIT_DAMAGE),
-            (motion_names.AIR_UA, headers.ATTACK_HIT_DAMAGE),
+            (motion_names.STAND_A, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_A, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.STAND_B, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_B, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.CROUCH_A, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_A, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.CROUCH_B, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_B, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.AIR_A, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_A, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.AIR_B, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_B, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.AIR_DA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_DA, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.AIR_DB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_DB, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.STAND_FA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_FA, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.STAND_FB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.STAND_FB, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.CROUCH_FA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_FA, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.CROUCH_FB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.CROUCH_FB, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.AIR_FA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_FA, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.AIR_FB, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_FB, headers.ATTACK_GIVE_ENERGY),
+            (motion_names.AIR_UA, headers.ATTACK_HIT_ADD_ENERGY),
+            (motion_names.AIR_UA, headers.ATTACK_GIVE_ENERGY),
         ]
 
         self.motion_coordinates: np.ndarray = gf.get_motion_coordinates(self.motion_adjustments)

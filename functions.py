@@ -13,9 +13,12 @@ import time
 from collections.abc import Iterator
 from contextlib import contextmanager
 from itertools import islice
+import uuid
+import pymoo
 
 from pymoo.core.result import Result
 from pymoo.core.algorithm import Algorithm
+from pymoo.core.result import Result
 
 import aiofiles
 import numpy as np
@@ -790,3 +793,25 @@ def read_results(res_name: str) -> None:
             print(f'Fitness: {fitness}\n')
 
         print()
+
+def append_time_uuid_experiment(experiment_name: str) -> str:
+    experiment_suffix_uuid: str = uuid.uuid4().hex[:6]
+    experiment_suffix_time: str = datetime.datetime.now().strftime('%H%M%S')
+
+    return f'{experiment_name}_iter_{experiment_suffix_time}_{experiment_suffix_uuid}'
+
+
+def resume_algorithm(plk_name: str | None, throw_error: bool = False) -> Result | None:
+    if plk_name is None:
+        return None
+
+    plk_path: pathlib.Path = pathlib.Path(plk_name)
+
+    if not plk_path.exists():
+        if throw_error:
+            raise FileNotFoundError(f"Failed to find file: {plk_path}")
+        return None
+
+    with open(plk_path, 'rb') as res_file:
+        return dill.load(res_file)
+
