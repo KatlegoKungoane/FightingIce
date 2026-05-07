@@ -61,7 +61,7 @@ class ResultHolder:
         objectives: list[Objectives],
     ) -> None:
         self.n_objectives: int = len(objectives)
-        self.experiment_name: str = f'{pkl_name.split("/", -1)[-1].split(".", 1)[0]}_result_replay'
+        self.experiment_name: str = f.append_time_uuid_experiment(f'{pkl_name.split("/", -1)[-1].split(".", 1)[0]}_result_replay')
         self.result: Result = f.resume_algorithm(plk_name=pkl_name, throw_error=True)
         self.solutions: list[SolutionHolder] = []
         for gene, fitness in zip(self.result.X, self.result.F, strict=True):
