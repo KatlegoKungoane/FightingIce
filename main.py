@@ -140,7 +140,22 @@ from pymoo.core.result import Result
 #     entropy = gf.calculate_entropy_score([win_probabilities], frame_window=1)
 #     print(entropy)
 
+from GeneticAlgorithm.ResultReplay import ResultHolder, SolutionHolder, Objectives, replay_results_and_save
 if __name__ == '__main__':
+    f.arg_parser()
+
+    results: list[ResultHolder] = [
+        ResultHolder('run_results/uniq_p32_n10_energy.pkl', [Objectives.UNIQUENESS]),
+        ResultHolder('run_results/excite_p32_n10_energy.pkl', [Objectives.EXCITEMENT]),
+        ResultHolder('run_results/comp_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE]),
+        ResultHolder('run_results/uq_cb_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.UNIQUENESS]),
+        ResultHolder('run_results/uq_ex_p32_n10_energy.pkl', [Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
+        ResultHolder('run_results/ex_cb_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT]),
+    ]
+
+    replay_results_and_save(results)
+
+if __name__ == '__main__' and False:
     f.arg_parser()
 
     if c.SCHEDULER_FILE is not None:

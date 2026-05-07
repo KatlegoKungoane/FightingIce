@@ -55,7 +55,7 @@ class IndividualSettings:
         self.visual = visual
 
 
-def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> list[float, float]:
+def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> np.ndarray:
     mutated_motions = gf.gene_to_motions(gene=x, motion_coordinates=settings.motion_coordinates)
 
     numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
