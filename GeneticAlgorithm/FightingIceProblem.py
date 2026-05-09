@@ -88,8 +88,7 @@ def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> np.ndarr
         [
             # -competitive_balance,
             -excitement,
-            # -uniqueness_reward,
-            0,
+            -uniqueness_reward,
         ],
         dtype=np.float64,
     )
