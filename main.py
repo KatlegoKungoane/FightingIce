@@ -141,21 +141,21 @@ from pymoo.core.result import Result
 #     print(entropy)
 
 from GeneticAlgorithm.ResultReplay import ResultHolder, SolutionHolder, Objectives, replay_results_and_save
+# if __name__ == '__main__':
+#     f.arg_parser()
+
+#     results: list[ResultHolder] = [
+#         ResultHolder('run_results/uniq_p32_n10_energy.pkl', [Objectives.UNIQUENESS]),
+#         ResultHolder('run_results/excite_p32_n10_energy.pkl', [Objectives.EXCITEMENT]),
+#         ResultHolder('run_results/comp_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE]),
+#         ResultHolder('run_results/uq_cb_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.UNIQUENESS]),
+#         ResultHolder('run_results/uq_ex_p32_n10_energy.pkl', [Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
+#         ResultHolder('run_results/ex_cb_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT]),
+#     ]
+
+#     replay_results_and_save(results)
+
 if __name__ == '__main__':
-    f.arg_parser()
-
-    results: list[ResultHolder] = [
-        ResultHolder('run_results/uniq_p32_n10_energy.pkl', [Objectives.UNIQUENESS]),
-        ResultHolder('run_results/excite_p32_n10_energy.pkl', [Objectives.EXCITEMENT]),
-        ResultHolder('run_results/comp_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE]),
-        ResultHolder('run_results/uq_cb_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.UNIQUENESS]),
-        ResultHolder('run_results/uq_ex_p32_n10_energy.pkl', [Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
-        ResultHolder('run_results/ex_cb_p32_n10_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT]),
-    ]
-
-    replay_results_and_save(results)
-
-if __name__ == '__main__' and False:
     f.arg_parser()
 
     if c.SCHEDULER_FILE is not None:
@@ -181,7 +181,7 @@ if __name__ == '__main__' and False:
         client = Client(cluster)
 
     print(f'Dask Dashboard available at: {client.dashboard_link}')
-    experiment_name: str = 'ex_cb_uq_p10_n10_energy'
+    experiment_name: str = 'uniq_p31_n10_e4_g8_energy'
 
     try:
         previous_result = f.resume_algorithm(None)
@@ -194,7 +194,7 @@ if __name__ == '__main__' and False:
                 experiment_name=experiment_name,
                 dask_client=client,
                 engine_multiplier=4,
-                no_matches=3,
+                no_matches=8,
                 game_duration_sec=60,
                 visual=False,
             )
@@ -206,8 +206,8 @@ if __name__ == '__main__' and False:
                     # Must be greater than n_neighbors
                     ref_dirs=get_reference_directions(
                         c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
-                        n_dim=3,
-                        n_partitions=10,
+                        n_dim=2,
+                        n_partitions=31,
                     ),
                     # Magic number is 20
                     n_neighbors=10,

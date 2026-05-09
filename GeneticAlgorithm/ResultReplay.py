@@ -44,8 +44,8 @@ class SolutionHolder:
         """
         objective_order: list[Objectives] = [
             Objectives.COMPETITIVE_BALANCE,
-            Objectives.UNIQUENESS,
             Objectives.EXCITEMENT,
+            Objectives.UNIQUENESS,
         ]
 
         fitness: np.ndarray = evaluate_individual(self.gene, setting)
@@ -116,21 +116,23 @@ def replay_results_and_save(results: list[ResultHolder], save: bool = True) -> N
 
         if result.n_objectives == 3:
             print('Skipping, since already done all objectives')
-            continue
+            print('Will save if flag is enabled')
+        else:
+            for solution_index, solution in enumerate(result.solutions):
+                print(f'Evaluating solution {solution_index}/{len(result.solutions)}')
 
-        for solution_index, solution in enumerate(result.solutions):
-            print(f'Evaluating solution {solution_index}/{len(result.solutions)}')
+                setting: IndividualSettings = IndividualSettings(
+                    motion_coordinates=motion_coordinates,
+                    mapped_numerical_motion_coordinates=numerical_mapped_motion_coordinates,
+                    no_matches=8,
+                    engine_multiplier=4,
+                    game_duration_sec=c.GAME_DURATION_SEC,
+                    visual=False,
+                    experiment_name=f'{result.experiment_name}{solution_index}'
+                )
+                solution.set_global_fitness(setting)
 
-            setting: IndividualSettings = IndividualSettings(
-                motion_coordinates=motion_coordinates,
-                mapped_numerical_motion_coordinates=numerical_mapped_motion_coordinates,
-                no_matches=3,
-                engine_multiplier=4,
-                game_duration_sec=c.GAME_DURATION_SEC,
-                visual=False,
-                experiment_name=f'{result.experiment_name}{solution_index}'
-            )
-            solution.set_global_fitness(setting)
+            print(f'Done expanding experiment: {result.experiment_name}\n')
 
         if save:
             save_path = pathlib.Path(
@@ -145,4 +147,3 @@ def replay_results_and_save(results: list[ResultHolder], save: bool = True) -> N
             with open(f'{os.path.join(str(save_path), result.experiment_name)}.pkl', 'wb') as result_file:
                 dill.dump(result, result_file)
 
-        print(f'Done expanding experiment: {result.experiment_name}\n')

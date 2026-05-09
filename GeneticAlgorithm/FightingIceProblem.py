@@ -69,26 +69,27 @@ def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> np.ndarr
 
     amended_experiment_name: str = f.append_time_uuid_experiment(settings.experiment_name)
 
-    average_win_rate = asyncio.run(
-        gf.orchestrate_matches(
-            mutated_motions=mutated_motions,
-            no_matches=settings.no_matches,
-            experiment_name=amended_experiment_name,
-            engine_multiplier=settings.engine_multiplier,
-            game_duration_sec=settings.game_duration_sec,
-            visual=settings.visual,
-        )
-    )
+    # average_win_rate = asyncio.run(
+    #     gf.orchestrate_matches(
+    #         mutated_motions=mutated_motions,
+    #         no_matches=settings.no_matches,
+    #         experiment_name=amended_experiment_name,
+    #         engine_multiplier=settings.engine_multiplier,
+    #         game_duration_sec=settings.game_duration_sec,
+    #         visual=settings.visual,
+    #     )
+    # )
 
-    competitive_balance: float = f.transform_win_rate(average_win_rate)
+    # competitive_balance: float = f.transform_win_rate(average_win_rate)
 
-    excitement = asyncio.run(gf.calculate_excitement(amended_experiment_name, frame_window=10))
+    # excitement = asyncio.run(gf.calculate_excitement(amended_experiment_name, frame_window=10))
 
     return np.array(
         [
-            -competitive_balance,
-            -excitement,
+            # -competitive_balance,
+            # -excitement,
             -uniqueness_reward,
+            0,
         ],
         dtype=np.float64,
     )
@@ -179,7 +180,7 @@ class FightingIceProblem(Problem):
         super().__init__(
             elementwise=False,
             **kwargs,
-            n_obj=3,
+            n_obj=2,
             n_ieq_constr=0,
             xl=xl,
             xu=xu,
