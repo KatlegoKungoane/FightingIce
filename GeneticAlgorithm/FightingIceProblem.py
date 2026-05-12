@@ -67,28 +67,26 @@ def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> np.ndarr
         boolean_motions=None,
     )
 
-    # amended_experiment_name: str = f.append_time_uuid_experiment(settings.experiment_name)
+    amended_experiment_name: str = f.append_time_uuid_experiment(settings.experiment_name)
 
-    # average_win_rate = asyncio.run(
-    #     gf.orchestrate_matches(
-    #         mutated_motions=mutated_motions,
-    #         no_matches=settings.no_matches,
-    #         experiment_name=amended_experiment_name,
-    #         engine_multiplier=settings.engine_multiplier,
-    #         game_duration_sec=settings.game_duration_sec,
-    #         visual=settings.visual,
-    #     )
-    # )
-
-    # competitive_balance: float = f.transform_win_rate(average_win_rate)
+    competitive_balance = asyncio.run(
+        gf.orchestrate_matches(
+            mutated_motions=mutated_motions,
+            no_matches=settings.no_matches,
+            experiment_name=amended_experiment_name,
+            engine_multiplier=settings.engine_multiplier,
+            game_duration_sec=settings.game_duration_sec,
+            visual=settings.visual,
+        )
+    )
 
     # excitement = asyncio.run(gf.calculate_excitement(amended_experiment_name, frame_window=10))
 
     return np.array(
         [
-            # -competitive_balance,
+            -competitive_balance,
             # -excitement,
-            -uniqueness_reward,
+            # -uniqueness_reward,
             -1,
         ],
         dtype=np.float64,
