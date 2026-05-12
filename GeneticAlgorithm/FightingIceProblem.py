@@ -80,12 +80,12 @@ def evaluate_individual(x: np.ndarray, settings: IndividualSettings) -> np.ndarr
         )
     )
 
-    # excitement = asyncio.run(gf.calculate_excitement(amended_experiment_name, frame_window=10))
+    excitement = asyncio.run(gf.calculate_excitement(amended_experiment_name, frame_window=10))
 
     return np.array(
         [
-            -competitive_balance,
-            # -excitement,
+            # -competitive_balance,
+            -excitement,
             # -uniqueness_reward,
             -1,
         ],
