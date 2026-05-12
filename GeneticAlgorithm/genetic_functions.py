@@ -82,27 +82,28 @@ def constraint_novelty_search(
             ),
             numerical_normalization,
         )
-        + f.calculate_harmonic_mean(
-            np.array(
-                [
-                    str_zen_garnet_distance,
-                    str_zen_lud_distance,
-                    str_garnet_lud_distance,
-                ]
-            ),
-            str_normalization,
-        )
-        + f.calculate_harmonic_mean(
-            np.array(
-                [
-                    bool_zen_garnet_distance,
-                    bool_zen_lud_distance,
-                    bool_garnet_lud_distance,
-                ]
-            ),
-            bool_normalization,
-        )
-    ) / 3
+        # Since we aren't using these yet. Why divide my score by 3 all the time
+        # + f.calculate_harmonic_mean(
+        #     np.array(
+        #         [
+        #             str_zen_garnet_distance,
+        #             str_zen_lud_distance,
+        #             str_garnet_lud_distance,
+        #         ]
+        #     ),
+        #     str_normalization,
+        # )
+        # + f.calculate_harmonic_mean(
+        #     np.array(
+        #         [
+        #             bool_zen_garnet_distance,
+        #             bool_zen_lud_distance,
+        #             bool_garnet_lud_distance,
+        #         ]
+        #     ),
+        #     bool_normalization,
+        # )
+    ) / 1
 
 
 async def wait_for_file(

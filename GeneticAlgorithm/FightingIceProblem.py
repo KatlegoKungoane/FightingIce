@@ -179,7 +179,7 @@ class FightingIceProblem(Problem):
         super().__init__(
             elementwise=False,
             **kwargs,
-            n_obj=3,
+            n_obj=2,
             n_ieq_constr=0,
             xl=xl,
             xu=xu,
