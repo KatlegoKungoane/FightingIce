@@ -146,13 +146,13 @@ if __name__ == '__main__':
     f.arg_parser()
 
     results: list[ResultHolder] = [
-        ResultHolder('run_results/uniq_p31_n10_e4_g8_energy.pkl', [Objectives.UNIQUENESS]),
-        ResultHolder('run_results/excite_p31_n10_e4_g8_energy.pkl', [Objectives.EXCITEMENT]),
-        ResultHolder('run_results/comp_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE]),
-        ResultHolder('run_results/cb_ex_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT]),
-        ResultHolder('run_results/cb_uq_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.UNIQUENESS]),
-        ResultHolder('run_results/ex_uq_p31_n10_e4_g8_energy.pkl', [Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
-        # ResultHolder('run_results/', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
+        # ResultHolder('run_results/uniq_p31_n10_e4_g8_energy.pkl', [Objectives.UNIQUENESS]),
+        # ResultHolder('run_results/excite_p31_n10_e4_g8_energy.pkl', [Objectives.EXCITEMENT]),
+        # ResultHolder('run_results/comp_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE]),
+        # ResultHolder('run_results/cb_ex_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT]),
+        # ResultHolder('run_results/cb_uq_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.UNIQUENESS]),
+        # ResultHolder('run_results/ex_uq_p31_n10_e4_g8_energy.pkl', [Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
+        ResultHolder('run_results/cb_ex_uq_p10_n5_e4_g8_energy', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
     ]
 
     replay_results_and_save(results)
@@ -183,7 +183,8 @@ if __name__ == '__main__' and False:
         client = Client(cluster)
 
     print(f'Dask Dashboard available at: {client.dashboard_link}')
-    experiment_name: str = 'cb_ex_uq_p10_n5_e4_g8_energy'
+    # experiment_name: str = 'cb_ex_uq_p10_n5_e4_g8_energy'
+    experiment_name: str = 'fitness_over_time_test'
 
     try:
         previous_result = f.resume_algorithm(None)
@@ -199,6 +200,7 @@ if __name__ == '__main__' and False:
                 no_matches=8,
                 game_duration_sec=c.GAME_DURATION_SEC,
                 visual=False,
+                save_fitness=True,
             )
 
             res = minimize(
@@ -208,11 +210,13 @@ if __name__ == '__main__' and False:
                     # Must be greater than n_neighbors
                     ref_dirs=get_reference_directions(
                         c.pymoo.MOEAD.SpreadType.DAS_DENNIS,
-                        n_dim=3,
-                        n_partitions=10,
+                        # n_dim=3,
+                        # n_partitions=10,
+                        n_dim=2,
+                        n_partitions=49,
                     ),
                     # Magic number is 20
-                    n_neighbors=5,
+                    n_neighbors=15,
                     decomposition=PBI(theta=10),
                     sampling=IntegerRandomSampling(),
                     crossover=SBX(prob=1.0, eta=20, vtype=int),
