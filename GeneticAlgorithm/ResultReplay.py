@@ -74,7 +74,7 @@ class ResultHolder:
             )
 
 
-def replay_results_and_save(results: list[ResultHolder], save: bool = True) -> None:
+def replay_results_and_save(results: list[ResultHolder], save: bool = True, rerun_three: bool = False) -> None:
     motion_adjustments: list[tuple[str, str]] = [
         (motion_names.STAND_A, headers.ATTACK_HIT_ADD_ENERGY),
         (motion_names.STAND_A, headers.ATTACK_GIVE_ENERGY),
@@ -114,7 +114,7 @@ def replay_results_and_save(results: list[ResultHolder], save: bool = True) -> N
     for result_index, result in enumerate(results):
         print(f'Expanding experiment: {result.experiment_name} ({result_index}/{len(results)})')
 
-        if result.n_objectives == 3:
+        if result.n_objectives == 3 and not rerun_three:
             print('Skipping, since already done all objectives')
             print('Will save if flag is enabled')
         else:
@@ -128,7 +128,7 @@ def replay_results_and_save(results: list[ResultHolder], save: bool = True) -> N
                     engine_multiplier=4,
                     game_duration_sec=c.GAME_DURATION_SEC,
                     visual=False,
-                    experiment_name=f'{result.experiment_name}{solution_index}'
+                    experiment_name=f'{result.experiment_name}{solution_index}',
                 )
                 solution.set_global_fitness(setting)
 
@@ -146,4 +146,3 @@ def replay_results_and_save(results: list[ResultHolder], save: bool = True) -> N
 
             with open(f'{os.path.join(str(save_path), result.experiment_name)}.pkl', 'wb') as result_file:
                 dill.dump(result, result_file)
-
