@@ -90,6 +90,7 @@ matplotlib
 matplotlib-inline
 mistune
 moocore
+mpmath
 msgpack
 multidict
 narwhals
@@ -124,6 +125,7 @@ pymoo
 pyparsing
 python-dateutil
 python-json-logger
+pywinpty
 PyYAML
 pyzmq
 referencing
@@ -144,6 +146,7 @@ six
 sortedcontainers
 soupsieve
 stack-data
+sympy
 tblib
 terminado
 threadpoolctl

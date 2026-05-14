@@ -1,11 +1,11 @@
 import asyncio
+import json
 import math
 import os
 import pathlib
 import time
 from datetime import datetime
 from itertools import combinations
-import json
 
 import numpy as np
 import pandas
@@ -225,7 +225,7 @@ async def orchestrate_matches(
     ]
     characters = np.array(characters).reshape(3, -1)
 
-    agents = np.full(shape=(3, 2), fill_value=c.AgentNames.MCTS_AGENT)
+    agents = np.full(shape=(3, 2), fill_value=c.AgentNames.CONSISTENT_MCTS_AGENT)
 
     await f.start_simulators(
         engine_multiplier * 3,

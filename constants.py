@@ -2,6 +2,8 @@ import datetime
 import os
 from enum import Enum
 
+GLOBAL_SEED: int = 42
+
 NO_GAMES: int = 1
 NO_ENGINES: int = 1
 PLAYER_HP: int = 400
@@ -93,6 +95,7 @@ class PointHeaderNames:
 
 class AgentNames:
     MCTS_AGENT = 'MctsAi23i'
+    CONSISTENT_MCTS_AGENT = 'MctsAi23i.MctsAi23i'
     KAT_MCTS_AGENT = 'katai.mcts.basic.MCTSAgent'
     KAT_KICK_AI = 'kat kick'
 

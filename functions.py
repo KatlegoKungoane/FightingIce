@@ -1,29 +1,26 @@
 import argparse
-import dill
 import asyncio
 import datetime
 import math
 import os
 import pathlib
+import random
 import re
 import shutil
-import socket
 import subprocess
 import time
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from itertools import islice
-import uuid
-import pymoo
-
-from pymoo.core.result import Result
-from pymoo.core.algorithm import Algorithm
-from pymoo.core.result import Result
 
 import aiofiles
+import dill
 import numpy as np
 import pandas
 from pyftg.socket.aio.gateway import Gateway
+from pymoo.core.algorithm import Algorithm
+from pymoo.core.result import Result
 
 import constants as c
 import functions as f
@@ -518,8 +515,8 @@ async def orchestrate_matches(
                 )
                 gateway.register_ai(agent1.name(), agent1)
                 agent_1_name = agent1.name()
-            case c.AgentNames.MCTS_AGENT:
-                agent_1_name = c.AgentNames.MCTS_AGENT
+            case c.AgentNames.CONSISTENT_MCTS_AGENT:
+                agent_1_name = c.AgentNames.CONSISTENT_MCTS_AGENT
 
         match agent_duo[1]:
             case c.AgentNames.KAT_KICK_AI:
@@ -532,8 +529,8 @@ async def orchestrate_matches(
                 )
                 gateway.register_ai(agent2.name(), agent2)
                 agent_2_name = agent2.name()
-            case c.AgentNames.MCTS_AGENT:
-                agent_2_name = c.AgentNames.MCTS_AGENT
+            case c.AgentNames.CONSISTENT_MCTS_AGENT:
+                agent_2_name = c.AgentNames.CONSISTENT_MCTS_AGENT
 
         game_name = f'{experiment_name}-instance-{index}-{agent_1_name}-vs-{agent_2_name}'
 
@@ -794,6 +791,7 @@ def read_results(res_name: str) -> None:
 
         print()
 
+
 def append_time_uuid_experiment(experiment_name: str) -> str:
     experiment_suffix_uuid: str = uuid.uuid4().hex[:6]
     experiment_suffix_time: str = datetime.datetime.now().strftime('%H%M%S')
@@ -809,9 +807,13 @@ def resume_algorithm(plk_name: str | None, throw_error: bool = False) -> Result 
 
     if not plk_path.exists():
         if throw_error:
-            raise FileNotFoundError(f"Failed to find file: {plk_path}")
+            raise FileNotFoundError(f'Failed to find file: {plk_path}')
         return None
 
     with open(plk_path, 'rb') as res_file:
         return dill.load(res_file)
 
+
+def set_random_seeds(seed: int) -> None:
+    np.random.seed(seed)
+    random.seed(seed)

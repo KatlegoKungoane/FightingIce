@@ -9,7 +9,7 @@ from MotionClasses.MotionEditor import MotionEditor
 from MotionClasses.MotionHeaders import MotionHeaders as headers
 
 """
-    TODO: 
+    TODO:
 		* Maybe look into consolidating when you are orchestrating many tournaments
         * Get the overwriting thing working well.
         * Linter
@@ -179,8 +179,8 @@ if __name__ == '__main__':
                 c.CHARACTERS.LUD,
             ],
             agents=[
-                c.AgentNames.MCTS_AGENT,
-                c.AgentNames.MCTS_AGENT,
+                c.AgentNames.CONSISTENT_MCTS_AGENT,
+                c.AgentNames.CONSISTENT_MCTS_AGENT,
             ],
             evolution_count=evolution_count,
             percentage=1,

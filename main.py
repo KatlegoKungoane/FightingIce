@@ -24,11 +24,11 @@
 # Experiment to determine the point at which running more engines is bad for the system and should rather run more rounds
 import pathlib
 import time
-import math
+
 import dill
-import numpy as np
 from distributed import Client, LocalCluster
 from pymoo.algorithms.moo.moead import MOEAD
+from pymoo.core.algorithm import Algorithm
 from pymoo.decomposition.pbi import PBI
 from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PolynomialMutation
@@ -36,17 +36,10 @@ from pymoo.operators.sampling.rnd import IntegerRandomSampling
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 from pymoo.util.ref_dirs import get_reference_directions
-import sys
 
 import constants as c
 import functions as f
-import GeneticAlgorithm.genetic_functions as gf
 from GeneticAlgorithm.FightingIceProblem import FightingIceProblem
-
-from pymoo.core.algorithm import Algorithm
-from pymoo.core.problem import Problem
-from pymoo.core.result import Result
-
 
 # async def run_games(no_engines: int):
 #     common_commands = [
@@ -83,12 +76,10 @@ from pymoo.core.result import Result
 #         ),
 #         # Not really used anyways
 #         motions=me.DEFAULT_MOTION_LIST,
-#         agent_names=np.full(shape=(3, 2), dtype=object, fill_value=c.AgentNames.MCTS_AGENT),
+#         agent_names=np.full(shape=(3, 2), dtype=object, fill_value=c.AgentNames.CONSISTENT_MCTS_AGENT),
 #         experiment_name='low',
 #         deterministic=True,
 #     )
-
-
 # if __name__ == '__main__':
 #     c.start_time = time.perf_counter()
 #     # c.PLAYER_HP = 10000
@@ -96,29 +87,22 @@ from pymoo.core.result import Result
 #     c.POLL_INTERVAL_SEC = 0
 #     asyncio.run(run_games(no_engines=1))
 #     print(f'time: {c.end_time - c.start_time}')
-
-
 # Clock time experiments
 # MOEAD - pop = 3 - time = 222.09393120001187
 # NSGA - pop = 3 - time = 236.92388630000642
-
 # Uniqueness adjustments tests
 # import GeneticAlgorithm.genetic_functions as gf
-
 # from MotionClasses.MotionHeaders import MotionHeaders as headers
 # from MotionClasses.MotionNames import MotionNames as motion_names
-
 # if __name__ == '__main__' and False:
 #     motion_adjustments: list[tuple[str, str]] = [
 #         (motion_names.STAND_A, headers.ATTACK_HIT_ADD_ENERGY),
 #         (motion_names.STAND_A, headers.ATTACK_GIVE_ENERGY),
 #     ]
-
 #     motion_coordinates = gf.get_motion_coordinates(motion_adjustments)
 #     x = gf.generate_random_gene(motion_adjustments)
 #     mutated_motions = gf.gene_to_motions(gene=x, motion_coordinates=motion_coordinates)
 #     mapped_motion_coordinates = gf.map_numerical_motion_coordinates(motion_adjustments)
-
 #     numerical_differences = np.stack([motion.select_dtypes('number') for motion in mutated_motions])
 #     uniqueness_reward = gf.constraint_novelty_search(
 #         numerical_motions=numerical_differences,
@@ -127,7 +111,6 @@ from pymoo.core.result import Result
 #         string_motions=None,
 #         boolean_motions=None,
 #     )
-
 # if __name__ == '__main__':
 #     # frame_window: int = 360
 #     # exp_name: str = 'runner_03.07.03-2026.04.29_03.07.02.json'
@@ -139,10 +122,9 @@ from pymoo.core.result import Result
 #     # entropy = gf.calculate_entropy_score(win_probabilities[::3], frame_window=frame_window)
 #     entropy = gf.calculate_entropy_score([win_probabilities], frame_window=1)
 #     print(entropy)
+from GeneticAlgorithm.ResultReplay import Objectives, ResultHolder, replay_results_and_save
 
-from GeneticAlgorithm.ResultReplay import ResultHolder, SolutionHolder, Objectives, replay_results_and_save
-
-if __name__ == '__main__':
+if __name__ == '__main__' and False:
     f.arg_parser()
 
     results: list[ResultHolder] = [
@@ -157,7 +139,8 @@ if __name__ == '__main__':
 
     replay_results_and_save(results, rerun_three=True)
 
-if __name__ == '__main__' and False:
+if __name__ == '__main__':
+    f.set_random_seeds(c.GLOBAL_SEED)
     f.arg_parser()
 
     if c.SCHEDULER_FILE is not None:
@@ -218,7 +201,7 @@ if __name__ == '__main__' and False:
                     # Magic number is 20
                     n_neighbors=15,
                     decomposition=PBI(theta=10),
-                    sampling=IntegerRandomSampling(),
+                    sampling=IntegerRandomSampling(seed=c.GLOBAL_SEED),
                     crossover=SBX(prob=1.0, eta=20, vtype=int),
                     mutation=PolynomialMutation(prob=1.0, eta=20, vtype=int),
                 ),
@@ -229,7 +212,7 @@ if __name__ == '__main__' and False:
                     period=6,
                 ),
                 copy_algorithm=previous_result is None,
-                seed=1,
+                seed=c.GLOBAL_SEED,
                 save_history=True,
                 verbose=True,
             )
