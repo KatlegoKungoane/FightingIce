@@ -152,7 +152,7 @@ if __name__ == '__main__':
         # ResultHolder('run_results/cb_ex_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT]),
         # ResultHolder('run_results/cb_uq_p31_n10_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.UNIQUENESS]),
         # ResultHolder('run_results/ex_uq_p31_n10_e4_g8_energy.pkl', [Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
-        ResultHolder('run_results/cb_ex_uq_p10_n5_e4_g8_energy', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
+        ResultHolder('run_results/cb_ex_uq_p10_n5_e4_g8_energy.pkl', [Objectives.COMPETITIVE_BALANCE, Objectives.EXCITEMENT, Objectives.UNIQUENESS]),
     ]
 
     replay_results_and_save(results)
